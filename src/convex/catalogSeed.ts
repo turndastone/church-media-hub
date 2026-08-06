@@ -1,0 +1,188 @@
+// Demo content seeded into the catalog on first visit so the app feels alive.
+// Scripture text uses the King James Version (public domain).
+
+export type SeedItem = {
+  type: "song" | "scripture" | "background" | "template";
+  title: string;
+  artist?: string;
+  reference?: string;
+  body: string;
+  tags: string[];
+  accent: string;
+  downloads: number;
+};
+
+export const DEMO_ITEMS: SeedItem[] = [
+  {
+    type: "song",
+    title: "Way Maker",
+    artist: "Sinach",
+    body: "You are the Way Maker, miracle worker, promise keeper, light in the darkness — my God, that is who You are.\n\nWay maker, miracle worker, promise keeper, light in the darkness — my God, that is who You are.\n\nEven when I don't see it, You're working. Even when I don't feel it, You're working. You never stop, You never stop working.",
+    tags: ["worship", "declaration", "bridge"],
+    accent: "violet",
+    downloads: 148,
+  },
+  {
+    type: "song",
+    title: "10,000 Reasons (Bless the Lord)",
+    artist: "Matt Redman",
+    body: "Bless the Lord, O my soul, O my soul, worship His holy name. Sing like never before, O my soul — I'll worship Your holy name.\n\nThe sun comes up, it's a new day dawning; it's time to sing Your song again. Whatever may pass, and whatever lies before me, let me be singing when the evening comes.",
+    tags: ["worship", "opening", "thanksgiving"],
+    accent: "amber",
+    downloads: 121,
+  },
+  {
+    type: "song",
+    title: "Great Is Thy Faithfulness",
+    artist: "Thomas O. Chisholm",
+    body: "Great is Thy faithfulness, O God my Father; there is no shadow of turning with Thee. Thou changest not, Thy compassions, they fail not — as Thou hast been, Thou forever wilt be.\n\nGreat is Thy faithfulness! Great is Thy faithfulness! Morning by morning new mercies I see. All I have needed Thy hand hath provided — great is Thy faithfulness, Lord, unto me.",
+    tags: ["hymn", "faithfulness", "classic"],
+    accent: "indigo",
+    downloads: 97,
+  },
+  {
+    type: "song",
+    title: "How Great Thou Art",
+    artist: "Carl Boberg",
+    body: "O Lord my God, when I in awesome wonder consider all the worlds Thy hands have made, I see the stars, I hear the rolling thunder — Thy power throughout the universe displayed.\n\nThen sings my soul, my Savior God, to Thee: how great Thou art, how great Thou art! Then sings my soul, my Savior God, to Thee: how great Thou art, how great Thou art!",
+    tags: ["hymn", "creation", "reverence"],
+    accent: "cyan",
+    downloads: 88,
+  },
+  {
+    type: "song",
+    title: "Oceans (Where Feet May Fail)",
+    artist: "Hillsong UNITED",
+    body: "Spirit lead me where my trust is without borders, let me walk upon the waters wherever You would call me. Take me deeper than my feet could ever wander, and my faith will be made stronger in the presence of my Savior.",
+    tags: ["worship", "call", "surrender"],
+    accent: "cyan",
+    downloads: 76,
+  },
+  {
+    type: "song",
+    title: "Cornerstone",
+    artist: "Hillsong Worship",
+    body: "My hope is built on nothing less than Jesus' blood and righteousness. I dare not trust the sweetest frame, but wholly lean on Jesus' name.\n\nChrist alone, cornerstone, weak made strong in the Savior's love. Through the storm He is Lord, Lord of all.",
+    tags: ["worship", "foundation", "hymn-modern"],
+    accent: "rose",
+    downloads: 64,
+  },
+  {
+    type: "scripture",
+    title: "John 3:16",
+    reference: "John 3:16",
+    body: "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
+    tags: ["gospel", "love", "salvation"],
+    accent: "rose",
+    downloads: 210,
+  },
+  {
+    type: "scripture",
+    title: "Psalm 23:1",
+    reference: "Psalm 23:1",
+    body: "The LORD is my shepherd; I shall not want.",
+    tags: ["comfort", "psalm", "shepherd"],
+    accent: "emerald",
+    downloads: 185,
+  },
+  {
+    type: "scripture",
+    title: "Philippians 4:13",
+    reference: "Philippians 4:13",
+    body: "I can do all things through Christ which strengtheneth me.",
+    tags: ["strength", "encouragement"],
+    accent: "violet",
+    downloads: 162,
+  },
+  {
+    type: "scripture",
+    title: "Isaiah 40:31",
+    reference: "Isaiah 40:31",
+    body: "But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.",
+    tags: ["strength", "hope", "renewal"],
+    accent: "cyan",
+    downloads: 141,
+  },
+  {
+    type: "scripture",
+    title: "Proverbs 3:5–6",
+    reference: "Proverbs 3:5-6",
+    body: "Trust in the LORD with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.",
+    tags: ["trust", "guidance", "wisdom"],
+    accent: "amber",
+    downloads: 133,
+  },
+  {
+    type: "scripture",
+    title: "Romans 8:28",
+    reference: "Romans 8:28",
+    body: "And we know that all things work together for good to them that love God, to them who are the called according to his purpose.",
+    tags: ["purpose", "hope", "goodness"],
+    accent: "indigo",
+    downloads: 118,
+  },
+  {
+    type: "background",
+    title: "Sunrise Motion Loop",
+    body: "Soft amber light breaking over a slow horizon. Ideal for opening worship and sunrise-themed services.",
+    tags: ["motion", "worship", "light"],
+    accent: "amber",
+    downloads: 203,
+  },
+  {
+    type: "background",
+    title: "Ember Glow",
+    body: "Deep violet smoke with warm ember particles rising. Great behind scripture and reflective moments.",
+    tags: ["motion", "violet", "reflection"],
+    accent: "violet",
+    downloads: 177,
+  },
+  {
+    type: "background",
+    title: "Deep Water Drift",
+    body: "Slow cyan depth currents with caustic light — pairs well with oceans, baptism, and surrender themes.",
+    tags: ["motion", "water", "calm"],
+    accent: "cyan",
+    downloads: 149,
+  },
+  {
+    type: "background",
+    title: "Stained Glass Drift",
+    body: "A modern take on stained glass, gently pulsing. A timeless frame for hymns and tradition.",
+    tags: ["still", "classic", "sacred"],
+    accent: "rose",
+    downloads: 96,
+  },
+  {
+    type: "template",
+    title: "Sermon Title Card",
+    body: "Clean sermon title layout with speaker name, series tag, and date slot. Fully editable in any presentation tool.",
+    tags: ["sermon", "title", "slide"],
+    accent: "indigo",
+    downloads: 88,
+  },
+  {
+    type: "template",
+    title: "Announcement Lower Third",
+    body: "Compact lower-third for announcements, connect cards, and event promos without covering the stage.",
+    tags: ["announcement", "lower-third", "utility"],
+    accent: "amber",
+    downloads: 74,
+  },
+  {
+    type: "template",
+    title: "Offering Slide",
+    body: "Warm, giving-oriented slide with verse overlay and giving code placeholder.",
+    tags: ["offering", "giving", "slide"],
+    accent: "emerald",
+    downloads: 61,
+  },
+  {
+    type: "template",
+    title: "Visitor Welcome",
+    body: "First-time visitor welcome card: service times, kids ministry, and next steps.",
+    tags: ["welcome", "visitors", "next-steps"],
+    accent: "cyan",
+    downloads: 52,
+  },
+];

@@ -16,6 +16,90 @@ export const roleValidator = v.union(
 );
 export type Role = Infer<typeof roleValidator>;
 
+// --- Billing ----------------------------------------------------------------
+
+export const PLAN = {
+  FREE: "free",
+  PRO: "pro",
+} as const;
+export const planValidator = v.union(v.literal(PLAN.FREE), v.literal(PLAN.PRO));
+
+export const SUB_STATUS = {
+  NONE: "none",
+  PENDING: "pending",
+  TRIALING: "trialing",
+  ACTIVE: "active",
+  PAST_DUE: "past_due",
+  CANCELED: "canceled",
+} as const;
+export const subStatusValidator = v.union(
+  ...Object.values(SUB_STATUS).map((s) => v.literal(s)),
+);
+
+export const BILLING_PROVIDER = {
+  STRIPE: "stripe",
+  PAYSTACK: "paystack",
+} as const;
+export const billingProviderValidator = v.union(
+  v.literal(BILLING_PROVIDER.STRIPE),
+  v.literal(BILLING_PROVIDER.PAYSTACK),
+);
+
+// --- Content catalog --------------------------------------------------------
+
+export const ITEM_TYPE = {
+  SONG: "song",
+  SCRIPTURE: "scripture",
+  BACKGROUND: "background",
+  TEMPLATE: "template",
+} as const;
+export const itemTypeValidator = v.union(
+  v.literal(ITEM_TYPE.SONG),
+  v.literal(ITEM_TYPE.SCRIPTURE),
+  v.literal(ITEM_TYPE.BACKGROUND),
+  v.literal(ITEM_TYPE.TEMPLATE),
+);
+export type ItemType = Infer<typeof itemTypeValidator>;
+
+export const SERVICE_ITEM_TYPE = {
+  ...ITEM_TYPE,
+  NOTE: "note",
+} as const;
+export const serviceItemTypeValidator = v.union(
+  v.literal(SERVICE_ITEM_TYPE.SONG),
+  v.literal(SERVICE_ITEM_TYPE.SCRIPTURE),
+  v.literal(SERVICE_ITEM_TYPE.BACKGROUND),
+  v.literal(SERVICE_ITEM_TYPE.TEMPLATE),
+  v.literal(SERVICE_ITEM_TYPE.NOTE),
+);
+
+export const SERVICE_STATUS = {
+  DRAFT: "draft",
+  SCHEDULED: "scheduled",
+  LIVE: "live",
+  COMPLETED: "completed",
+} as const;
+export const serviceStatusValidator = v.union(
+  v.literal(SERVICE_STATUS.DRAFT),
+  v.literal(SERVICE_STATUS.SCHEDULED),
+  v.literal(SERVICE_STATUS.LIVE),
+  v.literal(SERVICE_STATUS.COMPLETED),
+);
+
+// --- Desktop integrations ---------------------------------------------------
+
+export const APP = {
+  OBS: "obs",
+  EASYWORSHIP: "easyworship",
+  PEWBEAM: "pewbeam",
+} as const;
+export const appValidator = v.union(
+  v.literal(APP.OBS),
+  v.literal(APP.EASYWORSHIP),
+  v.literal(APP.PEWBEAM),
+);
+export type AppKey = Infer<typeof appValidator>;
+
 const schema = defineSchema(
   {
     // default auth tables using convex auth.
@@ -32,12 +116,84 @@ const schema = defineSchema(
       role: v.optional(roleValidator), // role of the user. do not remove
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
-    // add other tables here
+    // One subscription record per user (trial + provider billing).
+    subscriptions: defineTable({
+      userId: v.id("users"),
+      plan: planValidator,
+      status: subStatusValidator,
+      provider: v.optional(billingProviderValidator),
+      trialEndsAt: v.optional(v.number()),
+      currentPeriodEnd: v.optional(v.number()),
+      providerCustomerId: v.optional(v.string()),
+      providerSubscriptionId: v.optional(v.string()),
+    })
+      .index("by_user", ["userId"])
+      .index("by_provider_customer", ["providerCustomerId"])
+      .index("by_provider_subscription", ["providerSubscriptionId"]),
 
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    // The shared content catalog: songs, scripture, backgrounds, templates.
+    catalogItems: defineTable({
+      userId: v.id("users"),
+      type: itemTypeValidator,
+      title: v.string(),
+      body: v.optional(v.string()),
+      reference: v.optional(v.string()), // scripture reference, e.g. "John 3:16"
+      artist: v.optional(v.string()),
+      tags: v.array(v.string()),
+      coverUrl: v.optional(v.string()),
+      coverStorageId: v.optional(v.id("_storage")),
+      accent: v.optional(v.string()), // gradient key for generated cover art
+      isPublic: v.boolean(),
+      isApproved: v.boolean(),
+      downloads: v.number(),
+      likedBy: v.array(v.id("users")),
+    })
+      .index("by_user", ["userId"])
+      .index("by_type", ["type"]),
+
+    // Service orders / run-of-show.
+    services: defineTable({
+      userId: v.id("users"),
+      title: v.string(),
+      date: v.number(),
+      status: serviceStatusValidator,
+      items: v.array(
+        v.object({
+          label: v.string(),
+          type: serviceItemTypeValidator,
+          content: v.optional(v.string()),
+          reference: v.optional(v.string()),
+          catalogItemId: v.optional(v.id("catalogItems")),
+        }),
+      ),
+      notes: v.optional(v.string()),
+    }).index("by_user", ["userId"]),
+
+    // Saved connection settings for OBS / EasyWorship / Pewbeam.
+    connections: defineTable({
+      userId: v.id("users"),
+      app: appValidator,
+      host: v.string(),
+      port: v.optional(v.number()),
+      password: v.optional(v.string()),
+      url: v.optional(v.string()),
+      token: v.optional(v.string()),
+      enabled: v.boolean(),
+      lastConnectedAt: v.optional(v.number()),
+    }).index("by_user", ["userId"]),
+
+    // Saved sermon transcripts with detected verses.
+    transcripts: defineTable({
+      userId: v.id("users"),
+      title: v.string(),
+      sourceText: v.string(),
+      verses: v.array(
+        v.object({
+          reference: v.string(),
+          text: v.string(),
+        }),
+      ),
+    }).index("by_user", ["userId"]),
   },
   {
     schemaValidation: false,
