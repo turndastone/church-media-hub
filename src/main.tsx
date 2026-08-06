@@ -12,7 +12,17 @@ import "./index.css";
 // Lazy load route components for better code splitting
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const DashboardLayout = lazy(() => import("./pages/app/DashboardLayout.tsx"));
+const Overview = lazy(() => import("./pages/app/Overview.tsx"));
+const ControlRoom = lazy(() => import("./pages/app/ControlRoom.tsx"));
+const Services = lazy(() => import("./pages/app/Services.tsx"));
+const Catalog = lazy(() => import("./pages/app/Catalog.tsx"));
+const CatalogItem = lazy(() => import("./pages/app/CatalogItem.tsx"));
+const Upload = lazy(() => import("./pages/app/Upload.tsx"));
+const Scripture = lazy(() => import("./pages/app/Scripture.tsx"));
+const Billing = lazy(() => import("./pages/app/Billing.tsx"));
+const Admin = lazy(() => import("./pages/app/Admin.tsx"));
+const Settings = lazy(() => import("./pages/app/Settings.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -128,10 +138,21 @@ createRoot(document.getElementById("root")!).render(
                 path="/dashboard"
                 element={
                   <RequireAuth>
-                    <Dashboard />
+                    <DashboardLayout />
                   </RequireAuth>
                 }
-              />
+              >
+                <Route index element={<Overview />} />
+                <Route path="control" element={<ControlRoom />} />
+                <Route path="services" element={<Services />} />
+                <Route path="catalog" element={<Catalog />} />
+                <Route path="catalog/:id" element={<CatalogItem />} />
+                <Route path="upload" element={<Upload />} />
+                <Route path="scripture" element={<Scripture />} />
+                <Route path="billing" element={<Billing />} />
+                <Route path="admin" element={<Admin />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

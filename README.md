@@ -92,6 +92,62 @@ signed-in functionality, the task is not complete with only a landing page and
 auth form. Build the main authenticated experience, protect its route, and verify
 that signing in reaches it.
 
+## Alpha Worship One — Product Notes
+
+A church media console for media teams: project lyrics and scripture, transcribe
+sermon verses, and run the live stream — driving EasyWorship 7, Pewbeam, and
+OBS Studio from one operator screen.
+
+### Billing (Stripe + Paystack)
+
+- Pro plan: **$8.76/month** (Stripe, USD) or **₦13,140/month** (Paystack, NGN)
+  after a **30-day free trial**.
+- Every new account gets a 30-day Pro trial (`ensureTrial` on first dashboard
+  visit). Trial state lives in the `subscriptions` table; access is derived
+  server-side in `mySubscription`.
+- Checkout: `src/convex/payments.ts` (`createCheckoutSession` action) → Stripe
+  Checkout or Paystack initialize, with the trial days passed along.
+- Webhooks: `src/convex/http.ts` → `/stripe-webhook` and `/paystack-webhook`
+  (signature-verified), activating subscriptions via internal mutations.
+
+Required backend keys (set in the project Keys/API keys panel):
+
+| Env var | Purpose |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Stripe API (checkout, cancel) |
+| `STRIPE_PRO_PRICE_ID` | Your recurring $8.76/mo price ID |
+| `STRIPE_WEBHOOK_SECRET` | `/stripe-webhook` signature verification |
+| `PAYSTACK_SECRET_KEY` | Paystack API + webhook HMAC |
+| `PAYSTACK_PLAN_CODE` | Optional — recurring Paystack plan code |
+
+Webhook endpoints to configure at the providers:
+`<convex-site-url>/stripe-webhook` and `<convex-site-url>/paystack-webhook`.
+
+### Supabase (media storage)
+
+Optional cloud media storage for uploads, activated with client keys:
+`VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`. Create a public bucket named
+`media`. Until the keys are set, uploads fall back to built-in Convex storage
+(`src/lib/supabase.ts`, `src/pages/app/Upload.tsx`).
+
+### Desktop integrations
+
+- **OBS Studio** — real obs-websocket v5 client in `src/lib/obs.ts` (browser
+  WebSocket, `ws://host:4455`). Enable Tools → WebSocket Server Settings.
+- **EasyWorship 7** — no public API; drive it through a local bridge (e.g.
+  Bitfocus Companion) by saving a bridge URL + token in the Control Room.
+- **Pewbeam** — HTTP control hooks for scripture display; its NDI output can be
+  ingested by OBS as a source.
+
+### Content catalog
+
+Songs / scripture / backgrounds / templates live in `catalogItems`. First visit
+seeds starter content (`catalog.seedDemo`) and promotes the first user to
+admin. Uploads go through `catalog.create` with cover art stored in Convex or
+Supabase storage.
+
+---
+
 # Frontend Conventions
 
 You will be using the Vite frontend with React 19, Tailwind v4, and Shadcn UI.

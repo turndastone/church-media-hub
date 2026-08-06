@@ -110,13 +110,12 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="glow-violet min-h-screen flex flex-col">
 
-      
       {/* Auth Content */}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center px-4">
         <div className="flex items-center justify-center h-full flex-col">
-        <Card className="min-w-[350px] pb-0 border shadow-md">
+        <Card className="w-full max-w-[380px] pb-0 border border-border bg-card/90 backdrop-blur">
           {step === "signIn" ? (
             <>
               <CardHeader className="text-center">
@@ -132,7 +131,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   </div>
                 <CardTitle className="text-xl">Get Started</CardTitle>
                 <CardDescription>
-                  Enter your email to log in or sign up
+                  Sign in or create an account — every new workspace starts with
+                  a 30-day Pro trial.
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleEmailSubmit}>
@@ -277,8 +277,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </>
           )}
 
-          <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-muted border-t rounded-b-lg">
-            Secured by{" "}
+          <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-secondary/40 border-t border-border rounded-b-lg font-mono uppercase tracking-[0.15em]">
+            Alpha Worship One · Secured by{" "}
             <a
               href="https://freebuff.com"
               target="_blank"

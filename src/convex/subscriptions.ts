@@ -40,6 +40,7 @@ export const mySubscription = query({
         trialExpired: false,
         daysLeft: 0,
         currentPeriodEnd: undefined,
+        trialEndsAt: undefined,
       };
     }
 

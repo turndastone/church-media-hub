@@ -45,6 +45,13 @@ export const get = query({
   },
 });
 
+export const getStorageUrl = query({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, { storageId }) => {
+    return await ctx.storage.getUrl(storageId);
+  },
+});
+
 export const create = mutation({
   args: {
     type: itemTypeValidator,
