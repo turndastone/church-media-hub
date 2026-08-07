@@ -208,7 +208,7 @@ export default function ScripturePanel() {
               pewbeamReady ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-400" : "border-border text-muted-foreground",
             )}
           >
-            {pewbeamReady ? "Display ready" : "Pewbeam not set"}
+            {pewbeamReady ? "Display ready" : "PewBeam not set"}
           </span>
         </div>
 

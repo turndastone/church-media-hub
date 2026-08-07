@@ -29,8 +29,8 @@ const FREE_FEATURES = [
 ];
 
 const PRO_FEATURES = [
-  "Live OBS control room (scenes, stream, record)",
-  "EasyWorship 7 + Pewbeam bridges",
+  "Live broadcast control room (scenes, stream, record)",
+  "Projection + verse display bridges",
   "Unlimited service run-of-shows",
   "Unlimited uploads & verse detection",
   "Priority admin support",

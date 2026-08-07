@@ -36,13 +36,13 @@ const DEMO_ITEMS = [
 const FEATURES = [
   {
     icon: MonitorPlay,
-    title: "One console, three apps",
-    body: "Drive OBS Studio, EasyWorship 7, and Pewbeam from a single operator screen over your local network — no alt-tabbing between windows.",
+    title: "One console for the whole booth",
+    body: "Drive your broadcast engine, presentation software, and verse display from a single operator screen over your local network — no alt-tabbing between windows.",
   },
   {
     icon: ScanText,
     title: "Sermon verse detection",
-    body: "Paste a transcript and every Bible reference is detected instantly, with KJV text ready to project through Pewbeam.",
+    body: "Paste a transcript and every Bible reference is detected instantly, with KJV text ready to project in a single click.",
   },
   {
     icon: Library,
@@ -70,7 +70,7 @@ const PIPELINE = [
   { step: "01", label: "Capture", icon: Mic, body: "Sermon audio and transcripts come in from the sound booth." },
   { step: "02", label: "Detect", icon: ScanText, body: "Verses are recognized and matched to the library automatically." },
   { step: "03", label: "Drive", icon: Zap, body: "The operator steps the run-of-show and pushes slides to every app." },
-  { step: "04", label: "Stream", icon: Radio, body: "OBS carries the full broadcast — scenes, lower-thirds, and NDI layers." },
+  { step: "04", label: "Stream", icon: Radio, body: "Your broadcast engine carries the full stream — scenes, lower-thirds, and NDI layers." },
 ] as const;
 
 function fadeUp(delay: number) {
@@ -148,9 +148,10 @@ export default function Landing() {
                 from one console.
               </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-                Alpha Worship One unites EasyWorship 7, Pewbeam, and OBS Studio
-                into a single operator screen — projecting lyrics and scripture,
-                transcribing sermon verses, and controlling the live stream.
+                One operator screen for your whole media stack — projection
+                software, verse displays, and the broadcast engine — projecting
+                lyrics and scripture, transcribing sermon verses, and
+                controlling the live stream.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Button asChild size="lg" className="cursor-pointer gap-2">
@@ -183,12 +184,12 @@ export default function Landing() {
                   <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
                   <span className="ml-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                    obs://control-room · Alpha Worship One
+                    booth://control-room · Alpha Worship One
                   </span>
                 </div>
                 <div className="rounded-xl border border-border bg-background p-4">
                   <div className="flex items-center justify-between">
-                    <p className="tech-label">OBS transport</p>
+                    <p className="tech-label">Broadcast transport</p>
                     <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                       live
@@ -242,15 +243,18 @@ export default function Landing() {
             </p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {[
-                "OBS Studio",
-                "EasyWorship 7",
-                "Pewbeam",
-                "NDI",
-                "Convex",
-                "Supabase",
-                "Stripe",
-                "Paystack",
+                { icon: MonitorPlay, label: "Broadcast engine" },
+                { icon: Radio, label: "Presentation software" },
+                { icon: Wand2, label: "Verse display" },
               ].map((t) => (
+                <span
+                  key={t.label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-primary"
+                >
+                  <t.icon className="h-3.5 w-3.5" /> {t.label}
+                </span>
+              ))}
+              {["NDI", "Convex", "Supabase", "Stripe", "Paystack"].map((t) => (
                 <span
                   key={t}
                   className="rounded-full border border-border bg-card px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
@@ -452,8 +456,8 @@ export default function Landing() {
               </p>
               <ul className="mt-5 space-y-2.5">
                 {[
-                  "Live OBS control room",
-                  "EasyWorship 7 + Pewbeam bridges",
+                  "Live broadcast control room",
+                  "Projection + verse display bridges",
                   "Unlimited services & uploads",
                   "Verse detection & transcription",
                 ].map((f) => (
