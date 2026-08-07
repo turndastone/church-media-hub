@@ -236,34 +236,6 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Integration strip — rendered statically so it is always crisp */}
-          <div className="mt-16">
-            <p className="text-center font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-              Integrates with the tools your team already runs
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {[
-                { icon: MonitorPlay, label: "Broadcast engine" },
-                { icon: Radio, label: "Presentation software" },
-                { icon: Wand2, label: "Verse display" },
-              ].map((t) => (
-                <span
-                  key={t.label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-primary"
-                >
-                  <t.icon className="h-3.5 w-3.5" /> {t.label}
-                </span>
-              ))}
-              {["NDI", "Convex", "Supabase", "Stripe", "Paystack"].map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full border border-border bg-card px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
