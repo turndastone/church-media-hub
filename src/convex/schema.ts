@@ -100,6 +100,24 @@ export const appValidator = v.union(
 );
 export type AppKey = Infer<typeof appValidator>;
 
+// --- Live streaming platforms ----------------------------------------------
+
+export const STREAM_PLATFORM = {
+  YOUTUBE: "youtube",
+  FACEBOOK: "facebook",
+  TWITCH: "twitch",
+  VIMEO: "vimeo",
+  CUSTOM: "custom",
+} as const;
+export const streamPlatformValidator = v.union(
+  v.literal(STREAM_PLATFORM.YOUTUBE),
+  v.literal(STREAM_PLATFORM.FACEBOOK),
+  v.literal(STREAM_PLATFORM.TWITCH),
+  v.literal(STREAM_PLATFORM.VIMEO),
+  v.literal(STREAM_PLATFORM.CUSTOM),
+);
+export type StreamPlatform = Infer<typeof streamPlatformValidator>;
+
 const schema = defineSchema(
   {
     // default auth tables using convex auth.
@@ -167,6 +185,16 @@ const schema = defineSchema(
         }),
       ),
       notes: v.optional(v.string()),
+    }).index("by_user", ["userId"]),
+
+    // Multi-platform live streaming destinations (RTMP server + stream key).
+    streamTargets: defineTable({
+      userId: v.id("users"),
+      platform: streamPlatformValidator,
+      label: v.string(),
+      rtmpUrl: v.string(),
+      streamKey: v.string(),
+      enabled: v.boolean(),
     }).index("by_user", ["userId"]),
 
     // Saved connection settings for OBS / EasyWorship / Pewbeam.

@@ -234,4 +234,61 @@ describe("ObsClient requests and events", () => {
       /Not connected to OBS/,
     );
   });
+
+  it("sends a CallVendorRequest and unwraps the vendor response", async () => {
+    const { client, ws } = await connectedClient();
+    const req = client.callVendor<{ sources?: { ndi_name?: string }[] }>(
+      "obs-ndi",
+      "ndi.browse",
+      { local_source: true },
+    );
+    const sent = JSON.parse(ws.sent[1]);
+    expect(sent.op).toBe(4);
+    expect(sent.d.requestType).toBe("CallVendorRequest");
+    expect(sent.d.requestData).toEqual({
+      vendorName: "obs-ndi",
+      requestType: "ndi.browse",
+      requestData: { local_source: true },
+    });
+
+    ws.serverMessage({
+      op: 5,
+      d: {
+        requestType: "CallVendorRequest",
+        requestId: sent.d.requestId,
+        requestStatus: { result: true },
+        responseData: {
+          vendorName: "obs-ndi",
+          requestType: "ndi.browse",
+          responseType: "sources",
+          responseData: { sources: [{ ndi_name: "OBS-CAM" }] },
+        },
+      },
+    });
+    const res = await req;
+    expect(res.sources?.[0]?.ndi_name).toBe("OBS-CAM");
+  });
+
+  it("configures a custom RTMP stream service", async () => {
+    const { client, ws } = await connectedClient();
+    const req = client.setStreamService("rtmp://a.rtmp.youtube.com/live2", "KEY123");
+    const sent = JSON.parse(ws.sent[1]);
+    expect(sent.d.requestType).toBe("SetStreamServiceSettings");
+    expect(sent.d.requestData).toEqual({
+      streamServiceType: "rtmp_custom",
+      streamServiceSettings: {
+        server: "rtmp://a.rtmp.youtube.com/live2",
+        key: "KEY123",
+      },
+    });
+    ws.serverMessage({
+      op: 5,
+      d: {
+        requestType: "SetStreamServiceSettings",
+        requestId: sent.d.requestId,
+        requestStatus: { result: true },
+      },
+    });
+    await req;
+  });
 });

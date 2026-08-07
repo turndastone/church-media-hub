@@ -219,6 +219,27 @@ export class ObsClient {
 
   // ---- High-level helpers ------------------------------------------------
 
+  /** Call a vendor request (e.g. the obs-ndi / DistroAV plugin's NDI API). */
+  async callVendor<T = Record<string, unknown>>(
+    vendorName: string,
+    requestType: string,
+    requestData: Record<string, unknown> = {},
+  ): Promise<T> {
+    const res = await this.request<{ responseData?: unknown }>(
+      "CallVendorRequest",
+      { vendorName, requestType, requestData },
+    );
+    return (res.responseData ?? {}) as T;
+  }
+
+  /** Point OBS at a custom RTMP destination, ready for StartStream. */
+  async setStreamService(server: string, key: string) {
+    await this.request("SetStreamServiceSettings", {
+      streamServiceType: "rtmp_custom",
+      streamServiceSettings: { server, key },
+    });
+  }
+
   async getSceneList(): Promise<string[]> {
     const data = await this.request<{ scenes?: { sceneName?: string }[] }>(
       "GetSceneList",

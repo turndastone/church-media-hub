@@ -7,26 +7,79 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
 import { useObs } from "@/lib/obs";
 import { cn } from "@/lib/utils";
-import type { Doc } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
   Cable,
   CircleDot,
+  Clapperboard,
+  Facebook,
   Link2,
   Loader2,
   MonitorPlay,
   Pause,
   Play,
   Plug,
+  Power,
   Radio,
+  RadioTower,
   RotateCcw,
   SkipBack,
   SkipForward,
   Square,
+  Trash2,
+  Twitch,
   Unplug,
   Wand2,
+  Youtube,
 } from "lucide-react";
 
 type Connection = Doc<"connections">;
+type StreamTarget = Doc<"streamTargets">;
+type StreamPlatform = "youtube" | "facebook" | "twitch" | "vimeo" | "custom";
+
+const PLATFORMS: {
+  key: StreamPlatform;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  rtmp: string;
+  accent: string;
+}[] = [
+  {
+    key: "youtube",
+    label: "YouTube",
+    icon: Youtube,
+    rtmp: "rtmp://a.rtmp.youtube.com/live2",
+    accent: "text-red-400",
+  },
+  {
+    key: "facebook",
+    label: "Facebook",
+    icon: Facebook,
+    rtmp: "rtmps://live-api-s.facebook.com:443/rtmp/",
+    accent: "text-blue-400",
+  },
+  {
+    key: "twitch",
+    label: "Twitch",
+    icon: Twitch,
+    rtmp: "rtmp://live.twitch.tv/app",
+    accent: "text-purple-400",
+  },
+  {
+    key: "vimeo",
+    label: "Vimeo",
+    icon: Clapperboard,
+    rtmp: "rtmp://live.vimeo.com/app",
+    accent: "text-cyan-400",
+  },
+  {
+    key: "custom",
+    label: "Custom RTMP",
+    icon: RadioTower,
+    rtmp: "",
+    accent: "text-muted-foreground",
+  },
+];
 
 function StatusDot({ ok }: { ok: boolean }) {
   return (
@@ -56,8 +109,11 @@ export default function ControlRoom() {
   const obs = useObs();
   const connections = useQuery(api.connections.list);
   const services = useQuery(api.services.list);
+  const streamTargets = useQuery(api.streams.list);
   const upsert = useMutation(api.connections.upsert);
   const touch = useMutation(api.connections.touch);
+  const upsertTarget = useMutation(api.streams.upsert);
+  const removeTarget = useMutation(api.streams.remove);
 
   const [obsForm, setObsForm] = useState({ host: "localhost", port: "4455", password: "" });
   const [ewForm, setEwForm] = useState({ url: "", token: "" });
@@ -66,6 +122,18 @@ export default function ControlRoom() {
   const [bridgeBusy, setBridgeBusy] = useState<string | null>(null);
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
+
+  // Multi-platform streaming + NDI state
+  const [streamForm, setStreamForm] = useState<{
+    platform: StreamPlatform;
+    label: string;
+    rtmpUrl: string;
+    streamKey: string;
+  }>({ platform: "youtube", label: "", rtmpUrl: PLATFORMS[0].rtmp, streamKey: "" });
+  const [streamBusy, setStreamBusy] = useState<string | null>(null);
+  const [ndiName, setNdiName] = useState("AlphaWorship");
+  const [ndiBusy, setNdiBusy] = useState(false);
+  const [ndiSources, setNdiSources] = useState<string[]>([]);
 
   useEffect(() => {
     if (!connections) return;
@@ -179,6 +247,127 @@ export default function ControlRoom() {
   const step = (dir: 1 | -1) => {
     if (activeItems.length === 0) return;
     setCursor((c) => (c + dir + activeItems.length) % activeItems.length);
+  };
+
+  // ---- Multi-platform streaming + NDI --------------------------------------
+
+  const saveTarget = async () => {
+    const { platform, label, rtmpUrl, streamKey } = streamForm;
+    if (!label.trim() || !rtmpUrl.trim() || !streamKey.trim()) {
+      toast.error("Fill in a label, RTMP URL, and stream key");
+      return;
+    }
+    setStreamBusy("save");
+    try {
+      await upsertTarget({ platform, label, rtmpUrl, streamKey, enabled: true });
+      toast.success("Stream target saved");
+      setStreamForm({
+        platform: "youtube",
+        label: "",
+        rtmpUrl: PLATFORMS[0].rtmp,
+        streamKey: "",
+      });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setStreamBusy(null);
+    }
+  };
+
+  const handleRemoveTarget = async (id: Id<"streamTargets">) => {
+    try {
+      await removeTarget({ id });
+      toast("Stream target removed");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const goLive = async (t: StreamTarget) => {
+    if (obs.status !== "connected") {
+      toast.error("Connect to OBS first");
+      return;
+    }
+    setStreamBusy(t._id);
+    try {
+      await obs.client.setStreamService(t.rtmpUrl, t.streamKey);
+      await obs.client.startStream();
+      toast.success(`Streaming to ${t.label}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setStreamBusy(null);
+    }
+  };
+
+  const stopStreaming = async () => {
+    if (obs.status !== "connected") {
+      toast.error("Connect to OBS first");
+      return;
+    }
+    setStreamBusy("stop");
+    try {
+      await obs.client.stopStream();
+      toast("Stream stopped");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setStreamBusy(null);
+    }
+  };
+
+  const ndiBrowse = async () => {
+    if (obs.status !== "connected") {
+      toast.error("Connect to OBS first");
+      return;
+    }
+    setNdiBusy(true);
+    try {
+      const res = await obs.client.callVendor<{ sources?: { ndi_name?: string }[] }>(
+        "obs-ndi",
+        "ndi.browse",
+        { local_source: true },
+      );
+      const sources = (res.sources ?? [])
+        .map((s) => s.ndi_name ?? "")
+        .filter(Boolean);
+      setNdiSources(sources);
+      toast.success(
+        sources.length
+          ? `Found ${sources.length} NDI source${sources.length === 1 ? "" : "s"}`
+          : "No NDI sources on the network",
+      );
+    } catch (e) {
+      toast.error(
+        `NDI browse failed — install the DistroAV (obs-ndi) plugin in OBS. ${(e as Error).message}`,
+      );
+    } finally {
+      setNdiBusy(false);
+    }
+  };
+
+  const ndiOutput = async (on: boolean) => {
+    if (obs.status !== "connected") {
+      toast.error("Connect to OBS first");
+      return;
+    }
+    setNdiBusy(true);
+    try {
+      await obs.client.callVendor(
+        "obs-ndi",
+        on ? "ndi.output.create" : "ndi.output.destroy",
+        { ndi_name: ndiName },
+      );
+      toast.success(
+        on ? `NDI output “${ndiName}” started` : `NDI output “${ndiName}” stopped`,
+      );
+    } catch (e) {
+      toast.error(
+        `NDI ${on ? "output" : "stop"} failed — install the DistroAV (obs-ndi) plugin in OBS. ${(e as Error).message}`,
+      );
+    } finally {
+      setNdiBusy(false);
+    }
   };
 
   const connectionCard = (
@@ -464,6 +653,228 @@ export default function ControlRoom() {
               ))
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Streaming targets + NDI */}
+      <div className="grid gap-3 lg:grid-cols-5">
+        {/* Streaming targets */}
+        <div className="rounded-xl border border-border bg-card p-4 lg:col-span-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold tracking-tight text-foreground">
+                Streaming targets
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Save Facebook, YouTube, Twitch, and Vimeo destinations — then go
+                live through OBS. Multiple accounts per platform are supported.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {PLATFORMS.map((p) => (
+                <button
+                  key={p.key}
+                  onClick={() =>
+                    setStreamForm((f) => ({ ...f, platform: p.key, rtmpUrl: p.rtmp }))
+                  }
+                  className={cn(
+                    "flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                    streamForm.platform === p.key
+                      ? "border-primary/60 bg-primary/15 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40",
+                  )}
+                >
+                  <p.icon className={cn("h-3 w-3", p.accent)} />
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+            <Input
+              value={streamForm.label}
+              onChange={(e) => setStreamForm({ ...streamForm, label: e.target.value })}
+              placeholder="Label (e.g. Main YouTube)"
+              className="text-xs"
+            />
+            <Input
+              value={streamForm.rtmpUrl}
+              onChange={(e) => setStreamForm({ ...streamForm, rtmpUrl: e.target.value })}
+              placeholder="RTMP URL"
+              className="font-mono text-xs"
+            />
+            <Input
+              value={streamForm.streamKey}
+              onChange={(e) => setStreamForm({ ...streamForm, streamKey: e.target.value })}
+              placeholder="Stream key"
+              className="font-mono text-xs sm:col-span-2"
+            />
+          </div>
+          <Button
+            size="sm"
+            className="mt-2.5 cursor-pointer gap-1.5"
+            onClick={saveTarget}
+            disabled={streamBusy === "save"}
+          >
+            {streamBusy === "save" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Plug className="h-3.5 w-3.5" />
+            )}
+            Save target
+          </Button>
+
+          <div className="mt-4 flex flex-col gap-2">
+            {!streamTargets ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : streamTargets.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+                No destinations yet. Add one above, then hit Go live when OBS is
+                connected.
+              </p>
+            ) : (
+              streamTargets.map((t) => {
+                const meta = PLATFORMS.find((p) => p.key === t.platform) ?? PLATFORMS[4];
+                return (
+                  <div
+                    key={t._id}
+                    className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2"
+                  >
+                    <meta.icon className={cn("h-4 w-4 shrink-0", meta.accent)} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-foreground">
+                        {t.label}
+                      </p>
+                      <p className="truncate font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                        {t.platform} · {t.rtmpUrl}
+                      </p>
+                    </div>
+                    {t.enabled && (
+                      <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-emerald-400">
+                        Ready
+                      </span>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 cursor-pointer gap-1.5"
+                      onClick={() => goLive(t)}
+                      disabled={streamBusy !== null}
+                    >
+                      {streamBusy === t._id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Play className="h-3 w-3" />
+                      )}
+                      Go live
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 cursor-pointer text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemoveTarget(t._id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+            {obs.status === "connected" && (
+              <Button
+                size="sm"
+                variant="destructive"
+                className="self-start cursor-pointer gap-1.5"
+                onClick={stopStreaming}
+                disabled={streamBusy === "stop"}
+              >
+                {streamBusy === "stop" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Square className="h-3.5 w-3.5" />
+                )}
+                Stop stream
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* NDI */}
+        <div className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold tracking-tight text-foreground">
+                NDI output
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Broadcast the program feed to the NDI network (DistroAV / obs-ndi
+                plugin).
+              </p>
+            </div>
+            <RadioTower className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <Input
+              value={ndiName}
+              onChange={(e) => setNdiName(e.target.value)}
+              placeholder="NDI output name"
+              className="font-mono text-xs"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 cursor-pointer gap-1.5"
+              onClick={() => ndiOutput(true)}
+              disabled={ndiBusy}
+            >
+              <Power className="h-3.5 w-3.5" /> On
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 cursor-pointer"
+              onClick={() => ndiOutput(false)}
+              disabled={ndiBusy}
+            >
+              Off
+            </Button>
+          </div>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            className="mt-2 cursor-pointer gap-1.5"
+            onClick={ndiBrowse}
+            disabled={ndiBusy}
+          >
+            {ndiBusy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RadioTower className="h-3.5 w-3.5" />
+            )}
+            Scan for NDI sources
+          </Button>
+          {ndiSources.length > 0 && (
+            <div className="mt-2 flex flex-col gap-1">
+              {ndiSources.map((s) => (
+                <p
+                  key={s}
+                  className="truncate rounded-md border border-border bg-secondary/40 px-2.5 py-1.5 font-mono text-[11px] text-foreground"
+                >
+                  {s}
+                </p>
+              ))}
+            </div>
+          )}
+
+          <p className="mt-3 text-[11px] leading-4 text-muted-foreground">
+            Install the <span className="font-mono">DistroAV</span> (formerly
+            obs-ndi) plugin in OBS to use NDI outputs and browse network sources.
+            NDI feeds (e.g. from Pewbeam) can then be pulled into OBS scenes as
+            inputs.
+          </p>
         </div>
       </div>
 

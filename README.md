@@ -159,6 +159,16 @@ Paystack, Gemini, Bible API) alongside the client-side Supabase check.
 
 - **OBS Studio** — real obs-websocket v5 client in `src/lib/obs.ts` (browser
   WebSocket, `ws://host:4455`). Enable Tools → WebSocket Server Settings.
+- **Multi-platform streaming** — save any number of Facebook / YouTube /
+  Twitch / Vimeo / custom RTMP destinations (`streamTargets` table,
+  `src/convex/streams.ts`) and go live from the Control Room: the app points
+  OBS at the target (`SetStreamServiceSettings`, rtmp_custom) and starts the
+  stream. Stream keys never leave the browser.
+- **NDI** — the Control Room controls NDI outputs through the OBS
+  `CallVendorRequest` API (`src/lib/obs.ts` `callVendor`): browse network
+  sources and start/stop named outputs (`vendorName: "obs-ndi"`, request
+  types `ndi.browse`, `ndi.output.create`, `ndi.output.destroy`). Requires the
+  DistroAV (obs-ndi) plugin installed in OBS.
 - **EasyWorship 7** — no public API; drive it through a local bridge (e.g.
   Bitfocus Companion) by saving a bridge URL + token in the Control Room.
 - **Pewbeam** — HTTP control hooks for scripture display; its NDI output can be
