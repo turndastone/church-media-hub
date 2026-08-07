@@ -39,6 +39,7 @@ import {
   MonitorPlay,
   Music2,
   Palette,
+  Projector,
   Radio,
   ScanText,
   Send,
@@ -46,6 +47,7 @@ import {
   ShieldCheck,
   Square,
   UploadCloud,
+  Video,
 } from "lucide-react";
 
 const TABS: { key: TabKey; label: string; icon: typeof BookOpenText }[] = [
@@ -214,6 +216,26 @@ export default function Workspace() {
         {/* ── Top application bar ─────────────────────────────────────── */}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card/60 px-3 backdrop-blur">
           <Wordmark compact />
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => navigate("/dashboard/control")}
+              title="Live stream dashboard"
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => navigate("/dashboard/scripture")}
+              title="Bible verse transcription dashboard"
+            >
+              <ScanText className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="mx-2 hidden h-6 w-px bg-border sm:block" />
           <nav className="flex items-center gap-1 overflow-x-auto">
             {TABS.map((t) => (
@@ -421,6 +443,15 @@ export default function Workspace() {
 
         {/* ── Slide control bar ─────────────────────────────────────────── */}
         <footer className="flex h-16 shrink-0 items-center gap-2 border-t border-border bg-card/60 px-3 backdrop-blur">
+          <Button
+            className="shrink-0 cursor-pointer gap-1.5"
+            onClick={() => activeSlide && sendToDisplay(activeSlide)}
+            disabled={!activeSlide}
+            title="Push the active slide (song, theme, presentation, scripture) to the projector"
+          >
+            <Projector className="h-4 w-4" />
+            <span className="hidden sm:inline">Project</span>
+          </Button>
           <Button
             variant="outline"
             size="icon"

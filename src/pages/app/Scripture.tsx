@@ -1,19 +1,23 @@
 import { api } from "@/convex/_generated/api";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
 import { CURATED_VERSES, detectVerses, parseBibleReferences } from "@/lib/scripture";
-import { timeAgo } from "@/lib/format";
+import { formatUSD, timeAgo } from "@/lib/format";
+import { PRO_PRICE_USD, TRIAL_DAYS } from "@/convex/pricing";
 import { cn } from "@/lib/utils";
 import {
   BookOpenText,
   BookUp,
+  CreditCard,
   Loader2,
   Mic,
+  PartyPopper,
   Projector,
   Save,
   ScanSearch,
@@ -42,8 +46,12 @@ export default function Scripture() {
   const summarizeSermon = useAction(api.gemini.summarizeSermon);
   const explainVerse = useAction(api.gemini.explainVerse);
   const lookupPassage = useAction(api.bible.lookupPassage);
+  const sub = useQuery(api.subscriptions.mySubscription);
+  const ensureTrial = useMutation(api.subscriptions.ensureTrial);
+  const navigate = useNavigate();
 
   const [text, setText] = useState("");
+  const [billingBusy, setBillingBusy] = useState(false);
   const [title, setTitle] = useState("");
   const [detected, setDetected] = useState<{ reference: string; text: string }[]>([]);
   const [libraryQuery, setLibraryQuery] = useState("");
@@ -61,6 +69,18 @@ export default function Scripture() {
   const [bibleBusy, setBibleBusy] = useState(false);
 
   const verseCount = (transcripts ?? []).reduce((s, t) => s + t.verses.length, 0);
+
+  const startTrial = async () => {
+    setBillingBusy(true);
+    try {
+      await ensureTrial();
+      toast.success(`Your ${TRIAL_DAYS}-day Pro trial has started`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBillingBusy(false);
+    }
+  };
 
   const runDetection = () => {
     if (!text.trim()) {
@@ -237,6 +257,80 @@ export default function Scripture() {
           </span>
         }
       />
+
+      {/* Billing status */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-secondary">
+              {sub?.access === "pro" ? (
+                <Sparkles className="h-4 w-4 text-primary" />
+              ) : (
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-semibold tracking-tight text-foreground">
+                {sub?.access === "pro"
+                  ? "Pro plan"
+                  : sub?.trialActive
+                    ? "Pro trial active"
+                    : "Free plan"}
+              </p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                {sub?.trialActive
+                  ? `${sub.daysLeft} days left in your ${TRIAL_DAYS}-day trial`
+                  : sub?.trialExpired
+                    ? "Trial ended — upgrade to keep Pro"
+                    : sub?.access === "pro"
+                      ? "Active subscription"
+                      : `Start the ${TRIAL_DAYS}-day Pro trial, then ${formatUSD(PRO_PRICE_USD)}/mo`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {(sub?.access === "free" || !sub) && (
+              <Button
+                size="sm"
+                className="cursor-pointer gap-1.5"
+                onClick={startTrial}
+                disabled={billingBusy}
+              >
+                {billingBusy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <PartyPopper className="h-3.5 w-3.5" />
+                )}
+                Start free trial
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="cursor-pointer gap-1.5"
+              onClick={() => navigate("/dashboard/billing")}
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              {sub?.access === "pro" ? "Manage billing" : "View plans"}
+            </Button>
+          </div>
+        </div>
+        {sub?.trialActive && sub.trialEndsAt && (
+          <div className="mt-3">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                style={{
+                  width: `${Math.min(100, Math.max(0, ((sub.trialEndsAt - (Date.now() - TRIAL_DAYS * 86400000)) / (TRIAL_DAYS * 86400000)) * 100))}%`,
+                }}
+              />
+            </div>
+            <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Trial ends {new Date(sub.trialEndsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            </p>
+          </div>
+        )}
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Transcriber */}
