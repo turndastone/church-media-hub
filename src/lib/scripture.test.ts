@@ -4,7 +4,21 @@ import {
   formatReference,
   lookupVerse,
   detectVerses,
+  chapterCount,
 } from "./scripture";
+
+describe("chapterCount", () => {
+  it("returns the canonical chapter count for a book", () => {
+    expect(chapterCount("John")).toBe(21);
+    expect(chapterCount("Psalms")).toBe(150);
+    expect(chapterCount("Genesis")).toBe(50);
+    expect(chapterCount("Revelation")).toBe(22);
+  });
+
+  it("falls back to 1 for unknown book names", () => {
+    expect(chapterCount("Apocrypha")).toBe(1);
+  });
+});
 
 describe("parseBibleReferences", () => {
   it("parses a simple chapter:verse reference", () => {
