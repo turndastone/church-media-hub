@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import {
+  Cable,
   ChevronRight,
   CreditCard,
   LayoutDashboard,
@@ -35,6 +36,7 @@ const NAV = [
   { to: "/dashboard", label: "Presentation Console", icon: MonitorPlay, end: true },
   { to: "/dashboard/overview", label: "Overview", icon: LayoutDashboard, end: false },
   { to: "/dashboard/control", label: "Control Room", icon: Radio, end: false },
+  { to: "/dashboard/integrations", label: "Integrations", icon: Cable, end: false },
   { to: "/dashboard/services", label: "Services", icon: ListOrdered, end: false },
   { to: "/dashboard/catalog", label: "Catalog", icon: Library, end: false },
   { to: "/dashboard/scripture", label: "Scripture", icon: ScanText, end: false },

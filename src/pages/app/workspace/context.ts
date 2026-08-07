@@ -41,10 +41,10 @@ export interface WorkspaceState {
   setVersion: (v: string) => void;
   /** Add a slide to the presentation strip and show it in the preview. */
   queueSlide: (s: Omit<Slide, "id">) => void;
-  /** Project the current slide to the Pewbeam display (if configured). */
+  /** Project the current slide to the PewBeam display (if configured). */
   sendToDisplay: (s: Slide) => void;
+  /** Base URL of the configured PewBeam local connector, when set. */
   pewbeamUrl: string | null;
-  pewbeamToken: string | null;
 }
 
 export const WorkspaceContext = createContext<WorkspaceState | null>(null);

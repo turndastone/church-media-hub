@@ -1,6 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 
 export default function Settings() {
+  const navigate = useNavigate();
   const currentUser = useQuery(api.users.currentUser);
   const connections = useQuery(api.connections.list);
   const updateProfile = useMutation(api.users.updateProfile);
@@ -147,7 +149,7 @@ export default function Settings() {
   const APPS = [
     { app: "obs", label: "OBS Studio", icon: MonitorPlay },
     { app: "easyworship", label: "EasyWorship 7", icon: Radio },
-    { app: "pewbeam", label: "Pewbeam", icon: Wand2 },
+    { app: "pewbeam", label: "PewBeam", icon: Wand2 },
   ] as const;
 
   return (
@@ -253,38 +255,69 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* Saved connections */}
+      {/* Desktop integrations */}
       <section className="rounded-xl border border-border bg-card p-5">
-        <p className="tech-label mb-4">Saved desktop connections</p>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="tech-label mb-1">Desktop integrations</p>
+            <p className="text-[11px] leading-4 text-muted-foreground">
+              OBS Studio connects directly over its documented WebSocket API.
+              EasyWorship 7 and PewBeam have no public web API — they are driven
+              through the Alpha Worship Bridge local connector on the media PC.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="cursor-pointer gap-1.5"
+            onClick={() => navigate("/dashboard/integrations")}
+          >
+            <Cable className="h-3.5 w-3.5" /> Manage integrations
+          </Button>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {APPS.map((a) => {
             const conn = connByApp.get(a.app);
+            const configured = conn
+              ? a.app === "obs"
+                ? Boolean(conn.host)
+                : Boolean(conn.url)
+              : false;
             return (
-              <div
+              <button
                 key={a.app}
-                className="rounded-lg border border-border bg-secondary/30 p-4"
+                onClick={() => navigate("/dashboard/integrations")}
+                className="cursor-pointer rounded-lg border border-border bg-secondary/30 p-4 text-left transition-colors hover:border-accent/40"
               >
                 <div className="flex items-center gap-2.5">
                   <a.icon className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm font-semibold tracking-tight text-foreground">
                     {a.label}
                   </p>
+                  <span
+                    className={cn(
+                      "ml-auto font-mono text-[9px] uppercase tracking-[0.18em]",
+                      configured ? "text-emerald-400" : "text-muted-foreground",
+                    )}
+                  >
+                    {configured ? "Configured" : "Not connected"}
+                  </span>
                 </div>
                 <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
                   {conn
-                    ? conn.app === "obs"
+                    ? a.app === "obs"
                       ? `${conn.host}:${conn.port}`
                       : conn.url
-                    : "Not configured"}
+                    : a.app === "obs"
+                      ? "WebSocket · port 4455"
+                      : "Requires local connector"}
                 </p>
                 <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
                   {conn?.lastConnectedAt
                     ? `Last seen ${formatDateTime(conn.lastConnectedAt)}`
-                    : conn?.enabled
-                      ? "Configured"
-                      : "—"}
+                    : "—"}
                 </p>
-              </div>
+              </button>
             );
           })}
         </div>

@@ -295,10 +295,21 @@ export interface ObsLogEntry {
   kind: "ok" | "error" | "info";
 }
 
-/** React binding around ObsClient — one connection per component tree. */
+/**
+ * One shared OBS connection for the whole app. Multiple components (the
+ * Integrations panel, Control Room transport, workspace status) subscribe to
+ * the same socket so connect/disconnect state stays consistent everywhere.
+ */
+let sharedClient: ObsClient | null = null;
+export function getObsClient(): ObsClient {
+  sharedClient ??= new ObsClient();
+  return sharedClient;
+}
+
+/** React binding around ObsClient — one connection per app. */
 export function useObs() {
   const clientRef = useRef<ObsClient | null>(null);
-  if (!clientRef.current) clientRef.current = new ObsClient();
+  if (!clientRef.current) clientRef.current = getObsClient();
   const client = clientRef.current;
 
   const [status, setStatus] = useState<ObsStatus>("idle");

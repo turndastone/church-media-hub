@@ -1,6 +1,6 @@
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { connectorClient } from "@/lib/integrations";
 import { initials } from "@/lib/format";
 import { WorkspaceContext, VERSIONS, type Slide, type TabKey } from "./workspace/context";
 import ScripturePanel from "./workspace/ScripturePanel";
@@ -39,6 +40,7 @@ import {
   MonitorPlay,
   Music2,
   Palette,
+  Plug,
   Projector,
   Radio,
   ScanText,
@@ -76,6 +78,7 @@ const ScriptureOverlay = lazy(() => import("./Scripture"));
 const MANAGEMENT = [
   { to: "/dashboard/overview", label: "Overview", icon: LayoutDashboard },
   { to: "/dashboard/control", label: "Control Room", icon: Radio },
+  { to: "/dashboard/integrations", label: "Integrations", icon: Plug },
   { to: "/dashboard/services", label: "Services", icon: ListOrdered },
   { to: "/dashboard/catalog", label: "Catalog", icon: Library },
   { to: "/dashboard/upload", label: "Upload", icon: UploadCloud },
@@ -129,6 +132,7 @@ export default function Workspace() {
   const navigate = useNavigate();
   const connections = useQuery(api.connections.list);
   const sub = useQuery(api.subscriptions.mySubscription);
+  const getSecrets = useAction(api.connections.secrets);
 
   const [activeTab, setActiveTab] = useState<TabKey>("scripture");
   const [version, setVersion] = useState("KJV");
@@ -176,30 +180,36 @@ export default function Workspace() {
 
   const sendToDisplay = async (s: Slide) => {
     if (!pewbeam?.url) {
-      toast.error("Configure the Pewbeam hook in Control Room → Connections first.");
+      toast.error("Configure the PewBeam connector first — Control Room → Integrations.");
       return;
     }
-    try {
-      await fetch(pewbeam.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(pewbeam.token ? { Authorization: `Bearer ${pewbeam.token}` } : {}),
+    let token: string | null = null;
+    if (pewbeam.secretsStored) {
+      try {
+        const sec = await getSecrets({ app: "pewbeam" });
+        token = sec.token;
+      } catch {
+        // Token stays null — the connector may not require auth.
+      }
+    }
+    const res = await connectorClient.send(
+      pewbeam.url,
+      {
+        app: "pewbeam",
+        action: "show",
+        payload: {
+          kind: s.kind,
+          title: s.title,
+          text: s.body,
+          reference: s.kind === "verse" ? s.title : undefined,
         },
-        body: JSON.stringify({
-          action: "show",
-          token: pewbeam.token ?? null,
-          payload: {
-            kind: s.kind,
-            title: s.title,
-            text: s.body,
-            reference: s.kind === "verse" ? s.title : undefined,
-          },
-        }),
-      });
+      },
+      token,
+    );
+    if (res.ok) {
       toast.success(`Sent “${s.title}” to the display`);
-    } catch (e) {
-      toast.error(`Pewbeam request failed: ${(e as Error).message}`);
+    } else {
+      toast.error(res.message);
     }
   };
 
@@ -225,7 +235,6 @@ export default function Workspace() {
         queueSlide,
         sendToDisplay,
         pewbeamUrl: pewbeam?.url ?? null,
-        pewbeamToken: pewbeam?.token ?? null,
       }}
     >
       <div className="relative flex h-screen flex-col overflow-hidden bg-background">
@@ -443,7 +452,7 @@ export default function Workspace() {
               </button>
               <div className="mt-1 flex items-center gap-2 px-1.5 py-1.5">
                 <Radio className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="flex-1 text-[11px] text-foreground">Pewbeam</span>
+                <span className="flex-1 text-[11px] text-foreground">PewBeam</span>
                 <span
                   className={cn(
                     "font-mono text-[9px] uppercase tracking-[0.12em]",

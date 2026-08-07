@@ -1,15 +1,16 @@
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
+import { IntegrationsPanel } from "@/components/integrations/IntegrationsPanel";
 import { useObs } from "@/lib/obs";
+import { connectorClient, obsAdapter, type ObsOutputInfo } from "@/lib/integrations";
 import { cn } from "@/lib/utils";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
-  Cable,
   CircleDot,
   Clapperboard,
   Facebook,
@@ -33,7 +34,6 @@ import {
   Youtube,
 } from "lucide-react";
 
-type Connection = Doc<"connections">;
 type StreamTarget = Doc<"streamTargets">;
 type StreamPlatform = "youtube" | "facebook" | "twitch" | "vimeo" | "custom";
 
@@ -110,20 +110,14 @@ export default function ControlRoom() {
   const connections = useQuery(api.connections.list);
   const services = useQuery(api.services.list);
   const streamTargets = useQuery(api.streams.list);
-  const upsert = useMutation(api.connections.upsert);
-  const touch = useMutation(api.connections.touch);
+  const getSecrets = useAction(api.connections.secrets);
   const upsertTarget = useMutation(api.streams.upsert);
   const removeTarget = useMutation(api.streams.remove);
 
-  const [obsForm, setObsForm] = useState({ host: "localhost", port: "4455", password: "" });
-  const [ewForm, setEwForm] = useState({ url: "", token: "" });
-  const [pbForm, setPbForm] = useState({ url: "", token: "" });
-  const [connecting, setConnecting] = useState(false);
-  const [bridgeBusy, setBridgeBusy] = useState<string | null>(null);
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
 
-  // Multi-platform streaming + NDI state
+  // Multi-platform streaming state
   const [streamForm, setStreamForm] = useState<{
     platform: StreamPlatform;
     label: string;
@@ -131,20 +125,10 @@ export default function ControlRoom() {
     streamKey: string;
   }>({ platform: "youtube", label: "", rtmpUrl: PLATFORMS[0].rtmp, streamKey: "" });
   const [streamBusy, setStreamBusy] = useState<string | null>(null);
-  const [ndiName, setNdiName] = useState("AlphaWorship");
-  const [ndiBusy, setNdiBusy] = useState(false);
-  const [ndiSources, setNdiSources] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!connections) return;
-    const byApp = new Map(connections.map((c) => [c.app, c]));
-    const obsC = byApp.get("obs");
-    const ewC = byApp.get("easyworship");
-    const pbC = byApp.get("pewbeam");
-    if (obsC) setObsForm({ host: obsC.host || "localhost", port: String(obsC.port ?? 4455), password: obsC.password ?? "" });
-    if (ewC) setEwForm({ url: ewC.url ?? "", token: ewC.token ?? "" });
-    if (pbC) setPbForm({ url: pbC.url ?? "", token: pbC.token ?? "" });
-  }, [connections]);
+  // Output (NDI) state — real obs-websocket output API.
+  const [outputs, setOutputs] = useState<ObsOutputInfo[]>([]);
+  const [outputsBusy, setOutputsBusy] = useState(false);
 
   // Tear down the socket if the operator leaves the console (mount-unmount only).
   const obsRef = useRef(obs);
@@ -155,73 +139,29 @@ export default function ControlRoom() {
   const activeItems = activeService?.items ?? [];
   const currentItem = activeItems[cursor];
 
-  const handleConnectObs = async () => {
-    const url = `ws://${obsForm.host}:${obsForm.port}`;
-    setConnecting(true);
-    try {
-      await upsert({
-        app: "obs",
-        host: obsForm.host,
-        port: parseInt(obsForm.port, 10) || 4455,
-        password: obsForm.password,
-        enabled: true,
-      });
-      await obs.connect(url, obsForm.password);
-      touch({ app: "obs" }).catch(() => undefined);
-      toast.success("Connected to OBS Studio");
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleDisconnectObs = () => {
-    obs.disconnect();
-    toast("Disconnected from OBS");
-  };
-
-  const saveBridge = async (app: "easyworship" | "pewbeam", form: { url: string; token: string }) => {
-    try {
-      await upsert({ app, url: form.url, token: form.token, enabled: !!form.url });
-      toast.success(
-        app === "easyworship" ? "EasyWorship bridge saved" : "Pewbeam bridge saved",
-      );
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  };
-
-  const sendBridge = async (app: "easyworship" | "pewbeam", action: string, payload?: Record<string, unknown>) => {
+  /** Send a command to EasyWorship / PewBeam through the local connector. */
+  const sendToConnector = async (
+    app: "easyworship" | "pewbeam",
+    action: string,
+    payload?: Record<string, unknown>,
+  ) => {
     const conn = (connections ?? []).find((c) => c.app === app);
     if (!conn?.url) {
       toast.error(
         app === "easyworship"
-          ? "Configure the EasyWorship bridge URL first (e.g. your Bitfocus Companion endpoint)."
-          : "Configure the Pewbeam HTTP hook URL first.",
+          ? "Configure the EasyWorship connector first (Integrations → EasyWorship 7)."
+          : "Configure the PewBeam connector first (Integrations → PewBeam).",
       );
       return;
     }
-    setBridgeBusy(`${app}:${action}`);
-    try {
-      const res = await fetch(conn.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(conn.token ? { Authorization: `Bearer ${conn.token}` } : {}),
-        },
-        body: JSON.stringify({ action, token: conn.token ?? null, payload: payload ?? {} }),
-      });
-      if (!res.ok) throw new Error(`Bridge responded ${res.status}`);
+    const sec = await getSecrets({ app }).catch(() => ({ password: null, token: null }));
+    const res = await connectorClient.send(conn.url, { app, action, payload }, sec.token);
+    if (res.ok) {
       toast.success(
-        app === "easyworship"
-          ? `EasyWorship → ${action}`
-          : `Pewbeam → ${action}`,
+        app === "easyworship" ? `EasyWorship → ${action}` : `PewBeam → ${action}`,
       );
-    } catch (e) {
-      toast.error(`Bridge request failed: ${(e as Error).message}`);
-    } finally {
-      setBridgeBusy(null);
+    } else {
+      toast.error(res.message);
     }
   };
 
@@ -235,7 +175,7 @@ export default function ControlRoom() {
       await obs.switchScene(currentItem.label);
       toast.success(`Sent "${currentItem.label}" to OBS`);
     } else {
-      await sendBridge(app, "show", {
+      await sendToConnector(app, "show", {
         label: currentItem.label,
         type: currentItem.type,
         reference: currentItem.reference ?? null,
@@ -249,7 +189,7 @@ export default function ControlRoom() {
     setCursor((c) => (c + dir + activeItems.length) % activeItems.length);
   };
 
-  // ---- Multi-platform streaming + NDI --------------------------------------
+  // ---- Multi-platform streaming ---------------------------------------------
 
   const saveTarget = async () => {
     const { platform, label, rtmpUrl, streamKey } = streamForm;
@@ -316,216 +256,67 @@ export default function ControlRoom() {
     }
   };
 
-  const ndiBrowse = async () => {
+  // ---- Outputs (NDI) — documented obs-websocket output API ------------------
+
+  const refreshOutputs = async () => {
     if (obs.status !== "connected") {
       toast.error("Connect to OBS first");
       return;
     }
-    setNdiBusy(true);
+    setOutputsBusy(true);
     try {
-      const res = await obs.client.callVendor<{ sources?: { ndi_name?: string }[] }>(
-        "obs-ndi",
-        "ndi.browse",
-        { local_source: true },
-      );
-      const sources = (res.sources ?? [])
-        .map((s) => s.ndi_name ?? "")
-        .filter(Boolean);
-      setNdiSources(sources);
-      toast.success(
-        sources.length
-          ? `Found ${sources.length} NDI source${sources.length === 1 ? "" : "s"}`
-          : "No NDI sources on the network",
-      );
+      setOutputs(await obsAdapter.listOutputs());
     } catch (e) {
-      toast.error(
-        `NDI browse failed — install the DistroAV (obs-ndi) plugin in OBS. ${(e as Error).message}`,
-      );
+      toast.error((e as Error).message);
     } finally {
-      setNdiBusy(false);
+      setOutputsBusy(false);
     }
   };
 
-  const ndiOutput = async (on: boolean) => {
+  const toggleOutput = async (o: ObsOutputInfo) => {
     if (obs.status !== "connected") {
       toast.error("Connect to OBS first");
       return;
     }
-    setNdiBusy(true);
     try {
-      await obs.client.callVendor(
-        "obs-ndi",
-        on ? "ndi.output.create" : "ndi.output.destroy",
-        { ndi_name: ndiName },
-      );
-      toast.success(
-        on ? `NDI output “${ndiName}” started` : `NDI output “${ndiName}” stopped`,
-      );
+      if (o.outputActive) {
+        await obsAdapter.stopOutput(o.outputName);
+        toast(`Output "${o.outputName}" stopped`);
+      } else {
+        await obsAdapter.startOutput(o.outputName);
+        toast.success(`Output "${o.outputName}" started`);
+      }
+      await refreshOutputs();
     } catch (e) {
-      toast.error(
-        `NDI ${on ? "output" : "stop"} failed — install the DistroAV (obs-ndi) plugin in OBS. ${(e as Error).message}`,
-      );
-    } finally {
-      setNdiBusy(false);
+      toast.error((e as Error).message);
     }
   };
-
-  const connectionCard = (
-    title: string,
-    icon: React.ReactNode,
-    configured: boolean,
-    body: React.ReactNode,
-    footer?: React.ReactNode,
-  ) => (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary">
-            {icon}
-          </div>
-          <div>
-            <p className="text-sm font-semibold tracking-tight text-foreground">{title}</p>
-            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-              {configured ? "Configured" : "Not configured"}
-            </p>
-          </div>
-        </div>
-        <StatusDot ok={configured} />
-      </div>
-      <div className="mt-4 space-y-2.5">{body}</div>
-      {footer && <div className="mt-3">{footer}</div>}
-    </div>
-  );
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         eyebrow="Live console"
         title="Control Room"
-        description="Drive OBS Studio, EasyWorship 7, and Pewbeam from a single operator screen. Connections run over your local network."
+        description="Drive OBS Studio from a single operator screen, run multi-platform streams, and step the run-of-show. EasyWorship 7 and PewBeam are driven through their local connectors."
       />
 
-      {/* Connection cards */}
-      <div className="grid gap-3 lg:grid-cols-3">
-        {connectionCard(
-          "OBS Studio",
-          <MonitorPlay className="h-4 w-4 text-primary" />,
-          !!connections?.find((c) => c.app === "obs")?.enabled,
-          <>
-            <div className="grid grid-cols-2 gap-2.5">
-              <Input
-                value={obsForm.host}
-                onChange={(e) => setObsForm({ ...obsForm, host: e.target.value })}
-                placeholder="host"
-                className="font-mono text-xs"
-              />
-              <Input
-                value={obsForm.port}
-                onChange={(e) => setObsForm({ ...obsForm, port: e.target.value })}
-                placeholder="4455"
-                className="font-mono text-xs"
-              />
-            </div>
-            <Input
-              value={obsForm.password}
-              onChange={(e) => setObsForm({ ...obsForm, password: e.target.value })}
-              placeholder="WebSocket password (optional)"
-              type="password"
-              className="font-mono text-xs"
-            />
-          </>,
-          obs.status === "connected" ? (
-            <Button
-              variant="outline"
-              className="w-full cursor-pointer gap-1.5"
-              onClick={handleDisconnectObs}
-            >
-              <Unplug className="h-4 w-4" /> Disconnect
-            </Button>
-          ) : (
-            <Button
-              className="w-full cursor-pointer gap-1.5"
-              onClick={handleConnectObs}
-              disabled={connecting}
-            >
-              {connecting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plug className="h-4 w-4" />
-              )}
-              {obs.status === "connecting"
-                ? "Connecting…"
-                : obs.status === "error"
-                  ? "Retry connection"
-                  : "Connect to OBS"}
-            </Button>
-          ),
-        )}
-
-        {connectionCard(
-          "EasyWorship 7",
-          <Radio className="h-4 w-4 text-accent" />,
-          !!connections?.find((c) => c.app === "easyworship")?.enabled,
-          <>
-            <Input
-              value={ewForm.url}
-              onChange={(e) => setEwForm({ ...ewForm, url: e.target.value })}
-              placeholder="Bridge URL (e.g. http://192.168.1.20:8000/api)"
-              className="font-mono text-xs"
-            />
-            <Input
-              value={ewForm.token}
-              onChange={(e) => setEwForm({ ...ewForm, token: e.target.value })}
-              placeholder="Remote token (optional)"
-              className="font-mono text-xs"
-            />
-            <p className="text-[11px] leading-4 text-muted-foreground">
-              Point this at a local automation bridge such as Bitfocus
-              Companion, or an EasyWorship remote helper, to trigger slides.
-            </p>
-          </>,
+      {/* Integrations */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="tech-label">Integrations</p>
           <Button
-            variant="outline"
-            className="w-full cursor-pointer gap-1.5"
-            onClick={() => saveBridge("easyworship", ewForm)}
+            variant="ghost"
+            size="sm"
+            className="cursor-pointer gap-1.5 text-muted-foreground"
+            onClick={() => (window.location.href = "/dashboard/integrations")}
           >
-            <Cable className="h-4 w-4" /> Save bridge
-          </Button>,
-        )}
+            <RadioTower className="h-3.5 w-3.5" /> Manage integrations
+          </Button>
+        </div>
+        <IntegrationsPanel compact />
+      </section>
 
-        {connectionCard(
-          "Pewbeam",
-          <Wand2 className="h-4 w-4 text-cyan-400" />,
-          !!connections?.find((c) => c.app === "pewbeam")?.enabled,
-          <>
-            <Input
-              value={pbForm.url}
-              onChange={(e) => setPbForm({ ...pbForm, url: e.target.value })}
-              placeholder="HTTP hook URL (local Pewbeam endpoint)"
-              className="font-mono text-xs"
-            />
-            <Input
-              value={pbForm.token}
-              onChange={(e) => setPbForm({ ...pbForm, token: e.target.value })}
-              placeholder="API key (optional)"
-              className="font-mono text-xs"
-            />
-            <p className="text-[11px] leading-4 text-muted-foreground">
-              Pewbeam exposes HTTP control hooks — send scripture displays here,
-              or pull its NDI output into OBS for lower-thirds.
-            </p>
-          </>,
-          <Button
-            variant="outline"
-            className="w-full cursor-pointer gap-1.5"
-            onClick={() => saveBridge("pewbeam", pbForm)}
-          >
-            <Cable className="h-4 w-4" /> Save hook
-          </Button>,
-        )}
-      </div>
-
-      {/* OBS panel + log */}
+      {/* OBS transport + log */}
       <div className="grid gap-3 lg:grid-cols-5">
         <div className="rounded-xl border border-border bg-card p-4 lg:col-span-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -609,18 +400,18 @@ export default function ControlRoom() {
                 ))}
               </div>
               <p className="mt-3 truncate font-mono text-[11px] text-muted-foreground">
-                ws://{obsForm.host}:{obsForm.port} · current:{" "}
-                {obs.currentScene ?? "—"}
+                current scene: {obs.currentScene ?? "—"} · scenes are switched
+                only while this connection is live
               </p>
             </>
           ) : (
             <div className="mt-4 rounded-lg border border-dashed border-border bg-secondary/40 p-4">
               <p className="text-xs leading-5 text-muted-foreground">
                 <span className="font-semibold text-foreground">Setup:</span>{" "}
-                in OBS Studio open <span className="font-mono">Tools → WebSocket Server Settings</span>,
+                in OBS Studio open{" "}
+                <span className="font-mono">Tools → WebSocket Server Settings</span>,
                 enable the server (default port 4455), note the password, then
-                connect above. The browser talks to OBS over WebSocket on your
-                local network.
+                connect from the OBS Studio card above.
               </p>
             </div>
           )}
@@ -656,7 +447,7 @@ export default function ControlRoom() {
         </div>
       </div>
 
-      {/* Streaming targets + NDI */}
+      {/* Streaming targets + Outputs */}
       <div className="grid gap-3 lg:grid-cols-5">
         {/* Streaming targets */}
         <div className="rounded-xl border border-border bg-card p-4 lg:col-span-3">
@@ -708,6 +499,7 @@ export default function ControlRoom() {
               value={streamForm.streamKey}
               onChange={(e) => setStreamForm({ ...streamForm, streamKey: e.target.value })}
               placeholder="Stream key"
+              type="password"
               className="font-mono text-xs sm:col-span-2"
             />
           </div>
@@ -800,80 +592,101 @@ export default function ControlRoom() {
           </div>
         </div>
 
-        {/* NDI */}
+        {/* Outputs (incl. NDI) */}
         <div className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
           <div className="flex items-center justify-between gap-2">
             <div>
               <p className="text-sm font-semibold tracking-tight text-foreground">
-                NDI output
+                Outputs
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Broadcast the program feed to the NDI network (DistroAV / obs-ndi
-                plugin).
+                Start/stop OBS outputs — including NDI outputs from the DistroAV
+                plugin — via the documented output API.
               </p>
             </div>
             <RadioTower className="h-4 w-4 shrink-0 text-muted-foreground" />
           </div>
 
-          <div className="mt-4 flex gap-2">
-            <Input
-              value={ndiName}
-              onChange={(e) => setNdiName(e.target.value)}
-              placeholder="NDI output name"
-              className="font-mono text-xs"
-            />
+          <div className="mt-4 flex items-center gap-2">
             <Button
               size="sm"
               variant="outline"
-              className="shrink-0 cursor-pointer gap-1.5"
-              onClick={() => ndiOutput(true)}
-              disabled={ndiBusy}
+              className="cursor-pointer gap-1.5"
+              onClick={refreshOutputs}
+              disabled={outputsBusy || obs.status !== "connected"}
             >
-              <Power className="h-3.5 w-3.5" /> On
+              {outputsBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RotateCcw className="h-3.5 w-3.5" />
+              )}
+              List outputs
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0 cursor-pointer"
-              onClick={() => ndiOutput(false)}
-              disabled={ndiBusy}
-            >
-              Off
-            </Button>
+            {obs.status !== "connected" && (
+              <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted-foreground">
+                Connect to OBS first
+              </span>
+            )}
           </div>
 
-          <Button
-            size="sm"
-            variant="ghost"
-            className="mt-2 cursor-pointer gap-1.5"
-            onClick={ndiBrowse}
-            disabled={ndiBusy}
-          >
-            {ndiBusy ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <div className="mt-3 flex flex-col gap-2">
+            {outputs.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+                {obs.status === "connected"
+                  ? "No outputs found. Create NDI outputs in DistroAV's output settings — they appear here once OBS has them."
+                  : "Outputs will be listed here once OBS is connected."}
+              </p>
             ) : (
-              <RadioTower className="h-3.5 w-3.5" />
-            )}
-            Scan for NDI sources
-          </Button>
-          {ndiSources.length > 0 && (
-            <div className="mt-2 flex flex-col gap-1">
-              {ndiSources.map((s) => (
-                <p
-                  key={s}
-                  className="truncate rounded-md border border-border bg-secondary/40 px-2.5 py-1.5 font-mono text-[11px] text-foreground"
+              outputs.map((o) => (
+                <div
+                  key={o.outputName}
+                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2"
                 >
-                  {s}
-                </p>
-              ))}
-            </div>
-          )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-foreground">
+                      {o.outputName}
+                    </p>
+                    <p className="truncate font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {o.outputKind}
+                      {obsAdapter.isNdiOutput(o) ? " · NDI" : ""}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "font-mono text-[9px] uppercase tracking-[0.15em]",
+                      o.outputActive ? "text-emerald-400" : "text-muted-foreground",
+                    )}
+                  >
+                    {o.outputActive ? "Active" : "Stopped"}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant={o.outputActive ? "destructive" : "outline"}
+                    className="h-7 cursor-pointer gap-1"
+                    onClick={() => toggleOutput(o)}
+                    disabled={outputsBusy}
+                  >
+                    {o.outputActive ? (
+                      <>
+                        <Square className="h-3 w-3" /> Stop
+                      </>
+                    ) : (
+                      <>
+                        <Power className="h-3 w-3" /> Start
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
 
           <p className="mt-3 text-[11px] leading-4 text-muted-foreground">
             Install the <span className="font-mono">DistroAV</span> (formerly
-            obs-ndi) plugin in OBS to use NDI outputs and browse network sources.
-            NDI feeds (e.g. from Pewbeam) can then be pulled into OBS scenes as
-            inputs.
+            obs-ndi) plugin in OBS and create NDI outputs in its settings; they
+            are then controlled here with the standard obs-websocket output
+            requests. NDI feeds (e.g. from PewBeam) can be pulled into OBS as
+            sources.
           </p>
         </div>
       </div>
@@ -960,12 +773,13 @@ export default function ControlRoom() {
                       size="sm"
                       variant="ghost"
                       className="cursor-pointer gap-1 text-[11px]"
-                      onClick={() => sendBridge("easyworship", "show", {
-                        label: item.label,
-                        type: item.type,
-                        reference: item.reference ?? null,
-                      })}
-                      disabled={bridgeBusy !== null}
+                      onClick={() =>
+                        sendToConnector("easyworship", "show", {
+                          label: item.label,
+                          type: item.type,
+                          reference: item.reference ?? null,
+                        })
+                      }
                     >
                       <Radio className="h-3 w-3" /> EasyWorship
                     </Button>
@@ -973,13 +787,14 @@ export default function ControlRoom() {
                       size="sm"
                       variant="ghost"
                       className="cursor-pointer gap-1 text-[11px]"
-                      onClick={() => sendBridge("pewbeam", "show", {
-                        label: item.label,
-                        reference: item.reference ?? null,
-                      })}
-                      disabled={bridgeBusy !== null}
+                      onClick={() =>
+                        sendToConnector("pewbeam", "show", {
+                          label: item.label,
+                          reference: item.reference ?? null,
+                        })
+                      }
                     >
-                      <Wand2 className="h-3 w-3" /> Pewbeam
+                      <Wand2 className="h-3 w-3" /> PewBeam
                     </Button>
                   </div>
                 </div>

@@ -157,22 +157,46 @@ Paystack, Gemini, Bible API) alongside the client-side Supabase check.
 
 ### Desktop integrations
 
-- **OBS Studio** — real obs-websocket v5 client in `src/lib/obs.ts` (browser
-  WebSocket, `ws://host:4455`). Enable Tools → WebSocket Server Settings.
+The **Integrations** page (`/dashboard/integrations`, also embedded in the
+Control Room and linked from Settings) manages the three desktop appliances
+through an adapter architecture in `src/lib/integrations/` — each card shows
+service name, icon, connection status, Connect/Disconnect/Test, config fields,
+and clear error/success messages.
+
+- **OBS Studio** — the only integration with a real, documented API
+  (obs-websocket v5, browser WebSocket `ws://host:4455`, `src/lib/obs.ts`).
+  Connect/test/disconnect, list scenes, detect and switch the current scene,
+  transport controls, and output start/stop (incl. NDI outputs from the
+  DistroAV plugin, via the documented `GetOutputList` / `StartOutput` /
+  `StopOutput` requests in `src/lib/integrations/obs-adapter.ts`). A
+  cloud-hosted app can only reach OBS when served on the same network;
+  otherwise it routes through the local connector like the other two.
+- **EasyWorship 7** — no public web API exists, so the integration is a
+  connector/bridge: save the Alpha Worship Bridge local connector URL + token,
+  ping `/health`, and send `show` commands to `/command`. Status stays
+  "Requires local connector" until a connector answers.
+- **PewBeam** — same connector architecture (no documented public API). The
+  workspace's **Project** button and the Scripture dashboard's **Project**
+  actions push slides/verses through the connector; PewBeam's NDI output can
+  also be ingested by OBS as a source.
 - **Multi-platform streaming** — save any number of Facebook / YouTube /
   Twitch / Vimeo / custom RTMP destinations (`streamTargets` table,
   `src/convex/streams.ts`) and go live from the Control Room: the app points
   OBS at the target (`SetStreamServiceSettings`, rtmp_custom) and starts the
-  stream. Stream keys never leave the browser.
-- **NDI** — the Control Room controls NDI outputs through the OBS
-  `CallVendorRequest` API (`src/lib/obs.ts` `callVendor`): browse network
-  sources and start/stop named outputs (`vendorName: "obs-ndi"`, request
-  types `ndi.browse`, `ndi.output.create`, `ndi.output.destroy`). Requires the
-  DistroAV (obs-ndi) plugin installed in OBS.
-- **EasyWorship 7** — no public API; drive it through a local bridge (e.g.
-  Bitfocus Companion) by saving a bridge URL + token in the Control Room.
-- **Pewbeam** — HTTP control hooks for scripture display; its NDI output can be
-  ingested by OBS as a source.
+  stream. Stream keys are stored in the `streamTargets` table (plaintext, like
+  any Convex field) and sent to OBS only when you go live — treat them as
+  sensitive and rotate on shared accounts.
+- **Secret storage** — OBS passwords and connector tokens are encrypted at
+  rest (AES-256-GCM, `src/lib/integrations/crypto.ts`) when the
+  `INTEGRATION_CRYPT_KEY` env var (64-char hex or 32-byte base64) is set; the
+  `connections` list never exposes secrets, only a `secretsStored` flag. The
+  `INTEGRATION_CRYPT_KEY` itself is a server-side key (project Keys panel) and
+  is never sent to the client.
+- **Local connector protocol** — `GET {base}/health` → `{ ok, version }` and
+  `POST {base}/command` → `{ app, action, payload }` with optional
+  `Authorization: Bearer <token>` (see `src/lib/integrations/connector.ts`).
+  The web app never claims to talk to EasyWorship/PewBeam directly; the
+  connector is the documented integration point.
 
 ### Content catalog
 

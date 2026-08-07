@@ -11,6 +11,7 @@ import { CURATED_VERSES, detectVerses, parseBibleReferences } from "@/lib/script
 import { formatUSD, timeAgo } from "@/lib/format";
 import { PRO_PRICE_USD, TRIAL_DAYS } from "@/convex/pricing";
 import { cn } from "@/lib/utils";
+import { connectorClient } from "@/lib/integrations";
 import {
   BookOpenText,
   BookUp,
@@ -46,6 +47,7 @@ export default function Scripture() {
   const summarizeSermon = useAction(api.gemini.summarizeSermon);
   const explainVerse = useAction(api.gemini.explainVerse);
   const lookupPassage = useAction(api.bible.lookupPassage);
+  const getSecrets = useAction(api.connections.secrets);
   const sub = useQuery(api.subscriptions.mySubscription);
   const ensureTrial = useMutation(api.subscriptions.ensureTrial);
   const navigate = useNavigate();
@@ -125,21 +127,27 @@ export default function Scripture() {
   const projectVerse = async (reference: string) => {
     const conn = (connections ?? []).find((c) => c.app === "pewbeam");
     if (!conn?.url) {
-      toast.error("Configure the Pewbeam hook in the Control Room to project verses.");
+      toast.error("Configure the PewBeam connector in Control Room → Integrations to project verses.");
       return;
     }
-    try {
-      await fetch(conn.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(conn.token ? { Authorization: `Bearer ${conn.token}` } : {}),
-        },
-        body: JSON.stringify({ action: "show", token: conn.token ?? null, payload: { reference } }),
-      });
-      toast.success(`Projecting ${reference} via Pewbeam`);
-    } catch (e) {
-      toast.error(`Pewbeam request failed: ${(e as Error).message}`);
+    let token: string | null = null;
+    if (conn.secretsStored) {
+      try {
+        const sec = await getSecrets({ app: "pewbeam" });
+        token = sec.token;
+      } catch {
+        // Token stays null — the connector may not require auth.
+      }
+    }
+    const res = await connectorClient.send(
+      conn.url,
+      { app: "pewbeam", action: "show", payload: { reference } },
+      token,
+    );
+    if (res.ok) {
+      toast.success(`Projecting ${reference} via PewBeam`);
+    } else {
+      toast.error(res.message);
     }
   };
 
@@ -249,7 +257,7 @@ export default function Scripture() {
       <PageHeader
         eyebrow="Verse detection"
         title="Scripture"
-        description="Paste a sermon transcript and Alpha Worship One detects every Bible reference — then project the verses live through Pewbeam. Fetch full passage text from the Bible API, or let Gemini summarize and explain."
+        description="Paste a sermon transcript and Alpha Worship One detects every Bible reference — then project the verses live through PewBeam. Fetch full passage text from the Bible API, or let Gemini summarize and explain."
         actions={
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
             <ScanSearch className="h-3 w-3" />
