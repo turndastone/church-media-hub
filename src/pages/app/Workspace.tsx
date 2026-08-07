@@ -221,8 +221,8 @@ export default function Workspace() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => navigate("/dashboard/control")}
-              title="Live stream dashboard"
+              onClick={() => window.open("/dashboard/control", "_blank", "noopener,noreferrer")}
+              title="Live stream dashboard — opens in a new window"
             >
               <Video className="h-4 w-4" />
             </Button>
@@ -230,8 +230,8 @@ export default function Workspace() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => navigate("/dashboard/scripture")}
-              title="Bible verse transcription dashboard"
+              onClick={() => window.open("/dashboard/scripture", "_blank", "noopener,noreferrer")}
+              title="Bible verse transcription dashboard — opens in a new window"
             >
               <ScanText className="h-4 w-4" />
             </Button>
