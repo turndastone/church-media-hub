@@ -25,6 +25,11 @@ import SongPanel from "./workspace/SongPanel";
 import ThemePanel from "./workspace/ThemePanel";
 import PresentationsPanel from "./workspace/PresentationsPanel";
 import MediaPanel from "./workspace/MediaPanel";
+import ProgramPreview from "./workspace/ProgramPreview";
+
+/** Fallback caption feed so the overlay demos even before any sermon is saved. */
+const DEMO_CAPTION_FEED =
+  "Good morning and welcome to our service today. We're so glad you're here with us this morning. Let's turn our hearts to the Lord as we open in prayer. Our scripture reading this morning comes from the gospel of John. For God so loved the world that He gave His only Son. Let every heart prepare Him room as we worship together today.";
 import {
   BookOpenText,
   ChevronLeft,
@@ -86,52 +91,12 @@ const MANAGEMENT = [
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
-function PreviewCanvas({ slide }: { slide: Slide | null }) {
-  return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-black">
-      {!slide || slide.kind === "black" ? (
-        <div className="absolute inset-0 bg-black" />
-      ) : slide.kind === "media" && slide.mediaUrl ? (
-        <img
-          src={slide.mediaUrl}
-          alt={slide.title}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : slide.kind === "theme" ? (
-        <div
-          className="absolute inset-0"
-          style={{
-            background: slide.accent
-              ? `linear-gradient(135deg, ${slide.accent}, #0a0a0f)`
-              : "linear-gradient(135deg, #18181b, #09090b)",
-          }}
-        />
-      ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 p-8 text-center">
-          <p className="text-lg font-semibold tracking-tight text-white sm:text-2xl">
-            {slide.title}
-          </p>
-          {slide.sub && (
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/50">
-              {slide.sub}
-            </p>
-          )}
-          {slide.body && (
-            <p className="max-w-md text-xs leading-6 text-white/85 sm:text-sm">
-              {slide.body}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Workspace() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const connections = useQuery(api.connections.list);
   const sub = useQuery(api.subscriptions.mySubscription);
+  const transcripts = useQuery(api.transcripts.list);
   const getSecrets = useAction(api.connections.secrets);
 
   const [activeTab, setActiveTab] = useState<TabKey>("scripture");
@@ -139,7 +104,14 @@ export default function Workspace() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [overlay, setOverlay] = useState<"control" | "scripture" | null>(null);
+  const [captionsOn, setCaptionsOn] = useState(false);
   const idCounter = useRef(0);
+
+  // Live caption feed: latest saved transcript, falling back to a demo feed.
+  const latestTranscript = (transcripts ?? [])
+    .slice()
+    .sort((a, b) => b._creationTime - a._creationTime)[0];
+  const captionText = latestTranscript?.sourceText || DEMO_CAPTION_FEED;
 
   useEffect(() => {
     if (!overlay) return;
@@ -399,8 +371,38 @@ export default function Workspace() {
           {/* Preview + controls */}
           <aside className="hidden w-[300px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-card/40 p-3 md:flex xl:w-[340px]">
             <div>
-              <p className="tech-label mb-2">Preview</p>
-              <PreviewCanvas slide={activeSlide} />
+              <p className="tech-label mb-2">Preview · Program output</p>
+              <ProgramPreview
+                slide={activeSlide}
+                captionText={captionText}
+                captionsOn={captionsOn}
+              />
+              <button
+                onClick={() => setCaptionsOn((v) => !v)}
+                className={cn(
+                  "mt-2 flex w-full cursor-pointer items-center justify-between rounded-lg border px-3 py-1.5 transition-colors",
+                  captionsOn
+                    ? "border-accent/40 bg-accent/10"
+                    : "border-border bg-secondary/30 hover:border-accent/40",
+                )}
+              >
+                <span className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <ScanText className="h-3 w-3" /> Live captions
+                </span>
+                <span
+                  className={cn(
+                    "relative h-3.5 w-7 rounded-full transition-colors",
+                    captionsOn ? "bg-accent/70" : "bg-secondary",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow transition-all",
+                      captionsOn ? "left-4" : "left-0.5",
+                    )}
+                  />
+                </span>
+              </button>
             </div>
 
             {activeSlide && (
