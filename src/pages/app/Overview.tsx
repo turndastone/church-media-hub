@@ -1,90 +1,81 @@
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { TrialBanner, TrialPill } from "@/components/trial-banner";
 import { CoverArt } from "@/components/cover-art";
-import { TYPE_META } from "@/components/catalog-meta";
+import { useObs } from "@/lib/obs";
 import { formatDate, pluralize, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
   CalendarClock,
+  ClipboardCopy,
+  Cross,
   Download,
   Library,
-  Mic,
-  MonitorPlay,
-  Radio,
+  RadioTower,
   ScanText,
   UploadCloud,
+  Video,
 } from "lucide-react";
-import { useNavigate } from "react-router";
 
-const CONN_APPS = [
-  { app: "obs", label: "OBS Studio", hint: "Scenes · stream · record" },
-  { app: "easyworship", label: "EasyWorship 7", hint: "Slides · schedules" },
-  { app: "pewbeam", label: "Pewbeam", hint: "Scripture display · NDI" },
-] as const;
+const TYPE_LABEL: Record<string, string> = {
+  song: "Song",
+  scripture: "Scripture",
+  background: "Background",
+  template: "Template",
+};
 
 export default function Overview() {
   const navigate = useNavigate();
   const services = useQuery(api.services.list);
   const items = useQuery(api.catalog.list, {});
   const transcripts = useQuery(api.transcripts.list);
-  const connections = useQuery(api.connections.list);
-  const user = useQuery(api.users.currentUser);
+  const streamTargets = useQuery(api.streams.list);
+  const obs = useObs();
 
   const upcoming = (services ?? [])
     .filter((s) => s.status !== "completed")
     .sort((a, b) => a.date - b.date)
     .slice(0, 3);
+  const nextService = upcoming[0] ?? null;
   const recent = (items ?? []).slice(0, 4);
   const downloads = (items ?? []).reduce((sum, i) => sum + i.downloads, 0);
-  const verses = (transcripts ?? []).reduce(
-    (sum, t) => sum + t.verses.length,
-    0,
-  );
+  const verses = (transcripts ?? []).reduce((sum, t) => sum + t.verses.length, 0);
+  const streamKey = streamTargets?.[0]?.streamKey ?? null;
 
   const stats = [
-    {
-      label: "Services on the calendar",
-      value: services?.length ?? 0,
-      icon: CalendarClock,
-      to: "/dashboard/services",
-    },
-    {
-      label: "Catalog assets",
-      value: items?.length ?? 0,
-      icon: Library,
-      to: "/dashboard/catalog",
-    },
-    {
-      label: "Downloads",
-      value: downloads,
-      icon: Download,
-      to: "/dashboard/catalog",
-    },
-    {
-      label: "Verses detected",
-      value: verses,
-      icon: ScanText,
-      to: "/dashboard/scripture",
-    },
+    { label: "Services planned", value: services?.length ?? 0, icon: CalendarClock, to: "/dashboard/services" },
+    { label: "Catalog assets", value: items?.length ?? 0, icon: Library, to: "/dashboard/catalog" },
+    { label: "Downloads", value: downloads, icon: Download, to: "/dashboard/catalog" },
+    { label: "Verses detected", value: verses, icon: ScanText, to: "/dashboard/scripture" },
   ];
 
-  const firstName = user?.name?.split(" ")[0];
+  const copyStreamKey = async () => {
+    if (!streamKey) return;
+    try {
+      await navigator.clipboard.writeText(streamKey);
+      toast.success("Stream key copied to clipboard");
+    } catch {
+      toast.error("Could not copy — your browser blocked clipboard access");
+    }
+  };
+
+  const obsOnline = obs.status === "connected";
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow={new Date().toLocaleDateString("en-US", {
           weekday: "long",
           month: "long",
           day: "numeric",
         })}
-        title={`Welcome back${firstName ? `, ${firstName}` : ""}`}
-        description="Your church media console — orchestrate projection, transcription, and the live stream from one place."
+        title="Dashboard"
+        description="Your church media console — projection, transcription, and the live stream in one place."
         actions={<TrialPill />}
       />
 
@@ -98,7 +89,9 @@ export default function Overview() {
             onClick={() => navigate(s.to)}
             className="group cursor-pointer rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40"
           >
-            <s.icon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-secondary">
+              <s.icon className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary" />
+            </span>
             <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
               {s.value}
             </p>
@@ -108,250 +101,279 @@ export default function Overview() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        {/* Upcoming services */}
-        <section className="lg:col-span-3">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">
-              Upcoming services
-            </h2>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="cursor-pointer gap-1 text-xs"
-            >
-              <Link to="/dashboard/services">
-                View all <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
-          {upcoming.length === 0 ? (
-            <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-border bg-card/40 p-6">
-              <CalendarClock className="h-5 w-5 text-muted-foreground" />
+        {/* ── Main column ─────────────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-3">
+          {/* Recent content */}
+          <section className="rounded-xl border border-border bg-card p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-foreground">
-                  No services planned yet
-                </p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Build a run-of-show, attach songs and scripture, then drive it
-                  live from the control room.
+                <h2 className="text-sm font-bold tracking-tight text-foreground">
+                  Recent content
+                </h2>
+                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Songs · scripture · backgrounds
                 </p>
               </div>
               <Button
                 asChild
+                variant="ghost"
                 size="sm"
-                className="cursor-pointer gap-1.5"
-                onClick={() => undefined}
+                className="cursor-pointer gap-1 text-xs"
               >
-                <Link to="/dashboard/services">Plan a service</Link>
+                <Link to="/dashboard/catalog">
+                  View all <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </Button>
             </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {upcoming.map((s) => (
-                <Link
-                  key={s._id}
-                  to="/dashboard/services"
-                  className="group flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg border border-border bg-secondary">
-                      <span className="text-xs font-bold leading-none text-foreground">
-                        {new Date(s.date).getDate()}
-                      </span>
-                      <span className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground">
-                        {new Date(s.date).toLocaleDateString("en-US", {
-                          month: "short",
-                        })}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold tracking-tight text-foreground">
-                        {s.title}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {pluralize(s.items.length, "item")} · {formatDate(s.date)}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      "ml-3 shrink-0 rounded-full border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em]",
-                      s.status === "live" &&
-                        "border-accent/40 bg-accent/10 text-accent",
-                      s.status === "scheduled" &&
-                        "border-primary/40 bg-primary/10 text-primary",
-                      s.status === "draft" &&
-                        "border-border bg-secondary text-muted-foreground",
-                    )}
-                  >
-                    {s.status}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Connections */}
-        <section className="lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">
-              Desktop integrations
-            </h2>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="cursor-pointer gap-1 text-xs"
-            >
-              <Link to="/dashboard/control">
-                Open console <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            {CONN_APPS.map((c) => {
-              const conn = (connections ?? []).find((x) => x.app === c.app);
-              const configured = !!conn && conn.enabled;
-              return (
-                <Link
-                  key={c.app}
-                  to="/dashboard/control"
-                  className="group flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary">
-                    <Radio className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold tracking-tight text-foreground">
-                      {c.label}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {configured ? c.hint : "Not configured"}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "h-2 w-2 shrink-0 rounded-full",
-                      configured ? "bg-emerald-400" : "bg-muted-foreground/40",
-                    )}
-                    title={configured ? "Configured" : "Not configured"}
-                  />
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      </div>
-
-      {/* Recent uploads */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold tracking-tight text-foreground">
-            Recent content
-          </h2>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="cursor-pointer gap-1 text-xs"
-          >
-            <Link to="/dashboard/catalog">
-              Browse catalog <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </div>
-        {recent.length === 0 ? (
-          <div className="flex items-center justify-between rounded-xl border border-dashed border-border bg-card/40 p-5">
-            <div className="flex items-center gap-3">
-              <MonitorPlay className="h-5 w-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+            {recent.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-secondary/30 p-5 text-sm text-muted-foreground">
                 The catalog is being seeded with starter content…
-              </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {recent.map((item) => (
+                  <Link
+                    key={item._id}
+                    to={`/dashboard/catalog/${item._id}`}
+                    className="group cursor-pointer overflow-hidden rounded-xl border border-border bg-secondary/30 transition-colors hover:border-primary/40"
+                  >
+                    <div className="relative">
+                      <CoverArt item={item} className="aspect-[4/3] w-full" />
+                      <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.18em] text-white/90 backdrop-blur">
+                        {TYPE_LABEL[item.type] ?? item.type}
+                      </span>
+                    </div>
+                    <div className="p-3">
+                      <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+                        {item.title}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {item.artist ||
+                          item.reference ||
+                          timeAgo(item._creationTime)}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Quick actions + banner */}
+          <section className="rounded-xl border border-border bg-card p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold tracking-tight text-foreground">
+                  Quick actions
+                </h2>
+                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Jump straight into the booth
+                </p>
+              </div>
             </div>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="cursor-pointer gap-1.5"
-            >
-              <Link to="/dashboard/upload">
-                <UploadCloud className="h-3.5 w-3.5" /> Upload
-              </Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {recent.map((item) => (
-              <Link
-                key={item._id}
-                to={`/dashboard/catalog/${item._id}`}
-                className="group cursor-pointer overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary/40"
+            <div className="flex flex-wrap gap-2">
+              <Button
+                className="cursor-pointer gap-1.5"
+                onClick={() => navigate("/dashboard/control")}
               >
-                <CoverArt item={item} className="aspect-[4/3] w-full" />
-                <div className="p-3">
+                <RadioTower className="h-4 w-4" /> Go Live
+              </Button>
+              <Button
+                variant="outline"
+                className="cursor-pointer gap-1.5"
+                onClick={() => navigate("/dashboard/upload")}
+              >
+                <UploadCloud className="h-4 w-4" /> Upload Media
+              </Button>
+            </div>
+            {/* Glow banner */}
+            <button
+              onClick={() => navigate("/dashboard/control")}
+              className="group relative mt-4 flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-primary/30 p-8 text-center transition-colors hover:border-primary/60"
+            >
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(60% 90% at 50% 0%, oklch(0.6 0.2 292 / 45%), transparent 70%), radial-gradient(45% 60% at 50% 100%, oklch(0.7 0.18 84 / 20%), transparent 70%)",
+                }}
+              />
+              <div className="relative flex flex-col items-center gap-2">
+                <Cross className="h-8 w-8 text-white drop-shadow-[0_0_18px_oklch(0.72_0.19_292)] transition-transform group-hover:scale-110" />
+                <p className="text-sm font-bold tracking-tight text-white">
+                  Your next service starts here
+                </p>
+                <p className="text-xs text-white/70">
+                  Open the control room to go live, switch scenes, and push
+                  slides to the display.
+                </p>
+              </div>
+            </button>
+          </section>
+        </div>
+
+        {/* ── Right rail ───────────────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+          {/* Live stream */}
+          <section className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold tracking-tight text-foreground">
+                  Live Stream
+                </h2>
+                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Upcoming broadcast
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="cursor-pointer gap-1.5"
+                onClick={() => navigate("/dashboard/control")}
+              >
+                <RadioTower className="h-3.5 w-3.5" /> Start New Stream
+              </Button>
+            </div>
+            {nextService ? (
+              <div className="mt-3 flex items-center gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10">
+                  <CalendarClock className="h-4 w-4 text-primary" />
+                </span>
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold tracking-tight text-foreground">
-                    {item.title}
+                    {nextService.title}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {item.artist || item.reference || timeAgo(item._creationTime)}
+                  <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {formatDate(nextService.date)} ·{" "}
+                    {pluralize(nextService.items.length, "item")}
                   </p>
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Quick actions */}
-      <section className="grid gap-3 sm:grid-cols-3">
-        {[
-          {
-            label: "Go live",
-            desc: "Open the control room and drive the service.",
-            icon: Radio,
-            to: "/dashboard/control",
-            primary: true,
-          },
-          {
-            label: "Plan a service",
-            desc: "Build the run-of-show with songs and scripture.",
-            icon: CalendarClock,
-            to: "/dashboard/services",
-          },
-          {
-            label: "Transcribe a sermon",
-            desc: "Paste a transcript and detect every verse.",
-            icon: Mic,
-            to: "/dashboard/scripture",
-          },
-        ].map((a) => (
-          <button
-            key={a.label}
-            onClick={() => navigate(a.to)}
-            className={cn(
-              "group cursor-pointer rounded-xl border p-4 text-left transition-colors",
-              a.primary
-                ? "border-primary/50 bg-primary/10 hover:bg-primary/15"
-                : "border-border bg-card hover:border-primary/40",
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.15em]",
+                    nextService.status === "live"
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border bg-secondary text-muted-foreground",
+                  )}
+                >
+                  {nextService.status}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-3 rounded-lg border border-dashed border-border bg-secondary/30 p-4">
+                <p className="text-xs leading-5 text-muted-foreground">
+                  No services planned yet. Build a run-of-show, then its
+                  schedule appears here.
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 cursor-pointer gap-1.5"
+                >
+                  <Link to="/dashboard/services">Plan a service</Link>
+                </Button>
+              </div>
             )}
-          >
-            <a.icon
-              className={cn(
-                "h-4 w-4",
-                a.primary ? "text-primary" : "text-muted-foreground",
+          </section>
+
+          {/* Stream key */}
+          <section className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold tracking-tight text-foreground">
+                Stream Key
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 cursor-pointer text-xs text-muted-foreground"
+                onClick={() => navigate("/dashboard/control")}
+              >
+                Manage
+              </Button>
+            </div>
+            {streamKey ? (
+              <>
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2.5">
+                  <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
+                    {streamKey.replace(/./g, "•")}
+                  </p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
+                    onClick={copyStreamKey}
+                    title="Copy stream key"
+                  >
+                    <ClipboardCopy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+                  Use this stream key in your broadcast software to connect to
+                  your Alpha Worship One live stream.
+                </p>
+              </>
+            ) : (
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                No stream target saved yet. Add one in the Control Room and its
+                key will appear here.
+              </p>
+            )}
+          </section>
+
+          {/* Stream preview */}
+          <section className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold tracking-tight text-foreground">
+                Stream Preview
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 cursor-pointer gap-1 text-xs text-muted-foreground"
+                onClick={() => navigate("/dashboard/control")}
+              >
+                Open console <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-xl border border-border bg-black">
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(70% 90% at 50% 20%, oklch(0.6 0.2 292 / 35%), transparent 70%)",
+                }}
+              />
+              {obsOnline ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+                  {obs.streaming ? (
+                    <span className="flex items-center gap-1.5 rounded-full border border-red-400/50 bg-red-500/15 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-red-400">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
+                      Live
+                    </span>
+                  ) : (
+                    <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/60">
+                      On standby
+                    </span>
+                  )}
+                  <span className="font-mono text-[10px] text-white/80">
+                    {obs.currentScene ?? "Program"}
+                  </span>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 p-4 text-center">
+                  <Video className="h-5 w-5 text-white/50" />
+                  <p className="text-xs font-semibold text-white/80">
+                    Preview idle
+                  </p>
+                  <p className="text-[11px] text-white/50">
+                    Connect OBS in the Control Room to see your broadcast here.
+                  </p>
+                </div>
               )}
-            />
-            <p className="mt-3 text-sm font-semibold tracking-tight text-foreground">
-              {a.label}
-            </p>
-            <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-              {a.desc}
-            </p>
-          </button>
-        ))}
-      </section>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
