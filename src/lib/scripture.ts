@@ -86,7 +86,8 @@ export interface ParsedRef {
 }
 
 export function parseBibleReferences(text: string): ParsedRef[] {
-  const found: ParsedRef[] = [];
+  type Candidate = { ref: ParsedRef; start: number; end: number };
+  const found: Candidate[] = [];
   for (const book of BOOKS) {
     for (const alias of book.aliases) {
       const esc = alias.replace(ESCAPE_RE, "\\$&");
@@ -124,20 +125,33 @@ export function parseBibleReferences(text: string): ParsedRef[] {
             chapterEnd,
           }),
         };
-        // de-dupe consecutive overlapping matches for the same book
+        const start = m.index + m[1].length;
+        const end = start + alias.length;
+        // de-dupe matches for the same verse
         const dup = found.some(
           (f) =>
-            f.book === ref.book &&
-            f.chapter === ref.chapter &&
-            f.verse === ref.verse,
+            f.ref.book === ref.book &&
+            f.ref.chapter === ref.chapter &&
+            f.ref.verse === ref.verse,
         );
-        if (!dup) found.push(ref);
+        if (!dup) found.push({ ref, start, end });
       }
     }
   }
-  return found.sort(
-    (a, b) => text.indexOf(a.label) - text.indexOf(b.label),
-  );
+  found.sort((a, b) => a.start - b.start);
+  // Drop shorter aliases swallowed by a longer numbered-book match,
+  // e.g. "1 John 1:9" must not also emit a bogus "John 1:9".
+  const keptSpans: { start: number; end: number }[] = [];
+  const out: ParsedRef[] = [];
+  for (const c of found) {
+    const covered = keptSpans.some(
+      (k) => c.start >= k.start && c.start < k.end,
+    );
+    if (covered) continue;
+    keptSpans.push({ start: c.start, end: c.end });
+    out.push(c.ref);
+  }
+  return out;
 }
 
 export function formatReference(r: Omit<ParsedRef, "label">): string {

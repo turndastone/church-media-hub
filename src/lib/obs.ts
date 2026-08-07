@@ -9,7 +9,7 @@ type ObsMessage = {
     authentication?: {
       challenge?: string;
       salt?: string;
-      sha256?: string;
+      authenticationMethod?: string;
     };
     requestType?: string;
     requestId?: number;
@@ -88,7 +88,10 @@ export class ObsClient {
   ) {
     const challenge = auth?.challenge ?? "";
     const salt = auth?.salt ?? "";
-    if (auth && "sha256" in auth) {
+    // obs-websocket v5 sends authenticationMethod: "SHA256" (default) or
+    // "base64" (legacy v4 compat). Default to SHA256 when absent.
+    const method = auth?.authenticationMethod ?? "SHA256";
+    if (method === "SHA256") {
       const hashOfChallengeSalt = await this.sha256(challenge + salt);
       const secret = this.b64FromBytes(hashOfChallengeSalt);
       const secret2 = await this.sha256(password + secret);
@@ -102,6 +105,7 @@ export class ObsClient {
 
   async connect(url: string, password?: string): Promise<void> {
     if (this.ws && this.status === "connected") return;
+    if (password !== undefined) this.authPassword = password;
     this.setStatus("connecting");
     return new Promise((resolve, reject) => {
       this.connectResolve = resolve;
