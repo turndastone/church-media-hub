@@ -236,8 +236,8 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Integration strip */}
-          <motion.div {...fadeUp(0.3)} className="mt-16">
+          {/* Integration strip — rendered statically so it is always crisp */}
+          <div className="mt-16">
             <p className="text-center font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
               Integrates with the tools your team already runs
             </p>
@@ -263,7 +263,7 @@ export default function Landing() {
                 </span>
               ))}
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
