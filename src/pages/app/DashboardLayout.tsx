@@ -1,7 +1,8 @@
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { NavLink, Outlet, useNavigate } from "react-router";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useEffect } from "react";
+import Workspace from "./Workspace";
 import { useAuth } from "@/hooks/use-auth";
 import { Wordmark } from "@/components/wordmark";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -22,6 +23,7 @@ import {
   ListOrdered,
   LogOut,
   Menu,
+  MonitorPlay,
   Radio,
   ScanText,
   Settings,
@@ -30,7 +32,8 @@ import {
 } from "lucide-react";
 
 const NAV = [
-  { to: "/dashboard", label: "Overview", icon: LayoutDashboard, end: true },
+  { to: "/dashboard", label: "Presentation Console", icon: MonitorPlay, end: true },
+  { to: "/dashboard/overview", label: "Overview", icon: LayoutDashboard, end: false },
   { to: "/dashboard/control", label: "Control Room", icon: Radio, end: false },
   { to: "/dashboard/services", label: "Services", icon: ListOrdered, end: false },
   { to: "/dashboard/catalog", label: "Catalog", icon: Library, end: false },
@@ -158,12 +161,18 @@ export default function DashboardLayout() {
   const isAdmin = user?.role === "admin";
   const seedDemo = useMutation(api.catalog.seedDemo);
   const ensureTrial = useMutation(api.subscriptions.ensureTrial);
+  const location = useLocation();
 
   useEffect(() => {
     if (!isAuthenticated) return;
     seedDemo().catch(() => undefined);
     ensureTrial().catch(() => undefined);
   }, [isAuthenticated, seedDemo, ensureTrial]);
+
+  // The dashboard root is the fixed, app-like presentation console.
+  if (location.pathname === "/dashboard") {
+    return <Workspace />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -13,6 +13,7 @@ import "./index.css";
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const DashboardLayout = lazy(() => import("./pages/app/DashboardLayout.tsx"));
+const Workspace = lazy(() => import("./pages/app/Workspace.tsx"));
 const Overview = lazy(() => import("./pages/app/Overview.tsx"));
 const ControlRoom = lazy(() => import("./pages/app/ControlRoom.tsx"));
 const Services = lazy(() => import("./pages/app/Services.tsx"));
@@ -142,7 +143,8 @@ createRoot(document.getElementById("root")!).render(
                   </RequireAuth>
                 }
               >
-                <Route index element={<Overview />} />
+                <Route index element={<Workspace />} />
+                <Route path="overview" element={<Overview />} />
                 <Route path="control" element={<ControlRoom />} />
                 <Route path="services" element={<Services />} />
                 <Route path="catalog" element={<Catalog />} />

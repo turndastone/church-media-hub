@@ -7,17 +7,46 @@ import { toPassageId } from "../lib/bible-refs";
 /**
  * API.Bible (American Bible Society) scripture lookup.
  * Backend key: BIBLE_API_KEY. Optional BIBLE_ID overrides the default KJV.
+ * The `version` arg accepts a Bible abbreviation (KJV, NIV, ESV, NLT…) that
+ * is resolved to a bible id from the /bibles listing (cached per instance).
  */
 const API = "https://api.scripture.api.bible/v1";
 const KJV_BIBLE_ID = "de4e12af7f28f599-02";
 
-let kjvIdCache: string | null = null;
+let biblesCache: Record<string, string> | null = null;
 
 export interface PassageResult {
   reference: string;
   text: string;
   copyright: string;
   verseCount: number;
+}
+
+async function resolveBibleId(
+  apiKey: string,
+  abbreviation: string,
+): Promise<string | null> {
+  if (!biblesCache) {
+    try {
+      const res = await fetch(`${API}/bibles?language=eng`, {
+        headers: { "api-key": apiKey },
+      });
+      if (res.ok) {
+        const body = (await res.json()) as {
+          data?: { abbreviation?: string; id?: string }[];
+        };
+        const map: Record<string, string> = {};
+        for (const b of body.data ?? []) {
+          const key = b.abbreviation?.toUpperCase();
+          if (key && b.id && !(key in map)) map[key] = b.id;
+        }
+        biblesCache = map;
+      }
+    } catch {
+      // keep cache null; callers fall back
+    }
+  }
+  return biblesCache?.[abbreviation.toUpperCase()] ?? null;
 }
 
 export const lookupPassage = action({
@@ -27,6 +56,7 @@ export const lookupPassage = action({
     verse: v.optional(v.number()),
     verseEnd: v.optional(v.number()),
     chapterEnd: v.optional(v.number()),
+    version: v.optional(v.string()),
   },
   handler: async (_, args): Promise<PassageResult> => {
     const key = process.env.BIBLE_API_KEY;
@@ -39,7 +69,12 @@ export const lookupPassage = action({
     if (!passage) {
       throw new Error(`Unsupported reference: ${args.book} ${args.chapter}`);
     }
-    let bibleId = process.env.BIBLE_ID || kjvIdCache || KJV_BIBLE_ID;
+
+    const want = (args.version ?? "KJV").toUpperCase();
+    let bibleId = process.env.BIBLE_ID || KJV_BIBLE_ID;
+    if (want !== "KJV") {
+      bibleId = (await resolveBibleId(key, want)) ?? bibleId;
+    }
 
     const fetchPassage = async (bible: string, passageId: string) => {
       const qs =
@@ -69,31 +104,6 @@ export const lookupPassage = action({
       };
     };
 
-    const resolveKjvId = async (): Promise<string | null> => {
-      if (kjvIdCache) return kjvIdCache;
-      try {
-        const res = await fetch(`${API}/bibles?language=eng`, {
-          headers: { "api-key": key },
-        });
-        if (!res.ok) return null;
-        const body = (await res.json()) as {
-          data?: { abbreviation?: string; id?: string }[];
-        };
-        const kjv = body.data?.find(
-          (b) => b.abbreviation?.toUpperCase() === "KJV",
-        );
-        if (kjv?.id) kjvIdCache = kjv.id;
-        return kjv?.id ?? null;
-      } catch {
-        return null;
-      }
-    };
-
-    const lastError = () =>
-      new Error(
-        `Couldn't fetch ${passage}. Check BIBLE_API_KEY and that the reference is valid.`,
-      );
-
     // Primary attempt, plus a graceful fallback to the start verse if an
     // unusual range format (e.g. cross-chapter) is rejected.
     const attempts = [passage];
@@ -114,18 +124,8 @@ export const lookupPassage = action({
       }
     }
 
-    // If the default KJV id was wrong, resolve it from the /bibles listing.
-    if (bibleId === KJV_BIBLE_ID) {
-      const resolved = await resolveKjvId();
-      if (resolved && resolved !== bibleId) {
-        try {
-          return await fetchPassage(resolved, passage);
-        } catch {
-          // fall through
-        }
-      }
-    }
-
-    throw lastError();
+    throw new Error(
+      `Couldn't fetch ${passage} (${want}). Check BIBLE_API_KEY, the reference, and that the ${want} translation is authorized for your account.`,
+    );
   },
 });
