@@ -1,7 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "convex/react";
-import { useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
@@ -45,9 +45,11 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  Loader2,
   Square,
   UploadCloud,
   Video,
+  X,
 } from "lucide-react";
 
 const TABS: { key: TabKey; label: string; icon: typeof BookOpenText }[] = [
@@ -66,6 +68,10 @@ const KIND_ICON: Record<Slide["kind"], typeof BookOpenText> = {
   note: ScanText,
   black: Square,
 };
+
+// Dashboards opened as overlay panels that cover part of the console.
+const ControlRoomOverlay = lazy(() => import("./ControlRoom"));
+const ScriptureOverlay = lazy(() => import("./Scripture"));
 
 const MANAGEMENT = [
   { to: "/dashboard/overview", label: "Overview", icon: LayoutDashboard },
@@ -128,7 +134,17 @@ export default function Workspace() {
   const [version, setVersion] = useState("KJV");
   const [slides, setSlides] = useState<Slide[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [overlay, setOverlay] = useState<"control" | "scripture" | null>(null);
   const idCounter = useRef(0);
+
+  useEffect(() => {
+    if (!overlay) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOverlay(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [overlay]);
 
   const pewbeam = (connections ?? []).find((c) => c.app === "pewbeam" && c.url) ?? null;
   const activeSlide: Slide | null = activeIndex >= 0 ? slides[activeIndex] ?? null : null;
@@ -212,7 +228,7 @@ export default function Workspace() {
         pewbeamToken: pewbeam?.token ?? null,
       }}
     >
-      <div className="flex h-screen flex-col overflow-hidden bg-background">
+      <div className="relative flex h-screen flex-col overflow-hidden bg-background">
         {/* ── Top application bar ─────────────────────────────────────── */}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card/60 px-3 backdrop-blur">
           <Wordmark compact />
@@ -221,8 +237,8 @@ export default function Workspace() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => window.open("/dashboard/control", "_blank", "noopener,noreferrer")}
-              title="Live stream dashboard — opens in a new window"
+              onClick={() => setOverlay((o) => (o === "control" ? null : "control"))}
+              title="Live stream dashboard"
             >
               <Video className="h-4 w-4" />
             </Button>
@@ -230,8 +246,8 @@ export default function Workspace() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => window.open("/dashboard/scripture", "_blank", "noopener,noreferrer")}
-              title="Bible verse transcription dashboard — opens in a new window"
+              onClick={() => setOverlay((o) => (o === "scripture" ? null : "scripture"))}
+              title="Bible verse transcription dashboard"
             >
               <ScanText className="h-4 w-4" />
             </Button>
@@ -513,6 +529,66 @@ export default function Workspace() {
             {slides.length === 0 ? "0 / 0" : `${activeIndex + 1} / ${slides.length}`}
           </span>
         </footer>
+
+        {/* ── Dashboard overlay (covers part of the console) ──────────── */}
+        <AnimatePresence>
+          {overlay && (
+            <>
+              <motion.div
+                key="backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-40 bg-black/50"
+                onClick={() => setOverlay(null)}
+              />
+              <motion.div
+                key="panel"
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 32, stiffness: 320 }}
+                className="absolute inset-y-0 right-0 z-50 flex w-[88%] max-w-[920px] flex-col overflow-hidden border-l border-border bg-background"
+              >
+                <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
+                  <div className="flex min-w-0 items-center gap-2">
+                    {overlay === "control" ? (
+                      <Video className="h-4 w-4 shrink-0 text-accent" />
+                    ) : (
+                      <ScanText className="h-4 w-4 shrink-0 text-accent" />
+                    )}
+                    <p className="truncate font-mono text-[10px] uppercase tracking-[0.2em] text-foreground">
+                      {overlay === "control"
+                        ? "Live stream dashboard"
+                        : "Bible verse transcription dashboard"}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
+                    onClick={() => setOverlay(null)}
+                    title="Close (Esc)"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </header>
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  <Suspense
+                    fallback={
+                      <div className="flex items-center gap-2 p-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading dashboard…
+                      </div>
+                    }
+                  >
+                    {overlay === "control" ? <ControlRoomOverlay /> : <ScriptureOverlay />}
+                  </Suspense>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </WorkspaceContext.Provider>
   );
