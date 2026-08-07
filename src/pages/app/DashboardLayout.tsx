@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useObs } from "@/lib/obs";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import { toast } from "sonner";
@@ -36,6 +37,8 @@ import {
   Settings,
   ShieldCheck,
   UploadCloud,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 
 const NAV = [
@@ -70,11 +73,11 @@ function NavItems({ admin, query }: { admin: boolean; query: string }) {
   }
 
   return (
-    <nav className="flex flex-col gap-1">
+    <nav className="flex flex-col gap-0.5">
       {filtered.map((n) => {
         const activeCls = (isActive: boolean) =>
           cn(
-            "group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors",
+            "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-colors",
             isActive
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -90,18 +93,18 @@ function NavItems({ admin, query }: { admin: boolean; query: string }) {
               <>
                 <span
                   className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors",
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors",
                     isActive
                       ? "border-white/25 bg-white/10 text-white"
                       : "border-sidebar-border bg-sidebar-accent/60 text-muted-foreground group-hover:text-foreground",
                   )}
                 >
-                  <n.icon className="h-4 w-4" />
+                  <n.icon className="h-3.5 w-3.5" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span
                     className={cn(
-                      "block truncate text-[13px] leading-4",
+                      "block truncate text-[12px] leading-4",
                       isActive ? "font-bold" : "font-semibold",
                     )}
                   >
@@ -109,7 +112,7 @@ function NavItems({ admin, query }: { admin: boolean; query: string }) {
                   </span>
                   <span
                     className={cn(
-                      "block truncate text-[10px] leading-3.5",
+                      "block truncate text-[9px] leading-3",
                       isActive ? "text-white/75" : "text-muted-foreground/80",
                     )}
                   >
@@ -139,11 +142,11 @@ function SidebarFooter() {
   };
 
   return (
-    <div className="mt-auto space-y-3 border-t border-sidebar-border pt-4">
+    <div className="mt-auto space-y-3 border-t border-sidebar-border pt-3">
       {sub && (
         <NavLink
           to="/dashboard/billing"
-          className="block rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2.5"
+          className="block rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2"
         >
           <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
             {sub.access === "pro"
@@ -180,11 +183,11 @@ function SidebarFooter() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
+          className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-destructive"
           onClick={handleSignOut}
           title="Sign out"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>
@@ -195,31 +198,32 @@ function SidebarBody({ admin }: { admin: boolean }) {
   const [q, setQ] = useState("");
   return (
     <>
-      <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+      <div className="flex h-12 shrink-0 items-center border-b border-sidebar-border px-4">
         <NavLink to="/dashboard" className="cursor-pointer">
           <Wordmark compact />
         </NavLink>
       </div>
-      <div className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="relative mb-3">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3">
+        <div className="relative mb-2">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search menu items…"
-            className="h-9 rounded-lg bg-sidebar-accent/50 pl-8 text-xs"
+            placeholder="Search menu…"
+            className="h-8 rounded-md bg-sidebar-accent/50 pl-8 text-xs"
           />
         </div>
         <NavItems admin={admin} query={q} />
       </div>
-      <div className="px-4 pb-5">
+      <div className="shrink-0 px-3 pb-3">
         <SidebarFooter />
       </div>
     </>
   );
 }
 
-function TopBar({ page }: { page: NavItem | undefined }) {
+/** Native-style title bar: page identity on the left, window actions on the right. */
+function TitleBar({ page }: { page: NavItem | undefined }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [fullscreen, setFullscreen] = useState(false);
@@ -239,12 +243,12 @@ function TopBar({ page }: { page: NavItem | undefined }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur sm:px-6">
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card/70 px-3 backdrop-blur">
       {/* Mobile: menu + brand */}
-      <div className="flex items-center gap-2 md:hidden">
+      <div className="flex items-center gap-1.5 md:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="cursor-pointer">
+            <Button variant="outline" size="icon" className="h-8 w-8 cursor-pointer">
               <Menu className="h-4 w-4" />
             </Button>
           </SheetTrigger>
@@ -258,17 +262,19 @@ function TopBar({ page }: { page: NavItem | undefined }) {
         </NavLink>
       </div>
 
-      {/* Desktop: page title + badge */}
-      <div className="hidden min-w-0 items-center gap-2.5 md:flex">
-        <h1 className="truncate text-sm font-bold tracking-tight text-foreground">
+      {/* Desktop: app title + page */}
+      <div className="hidden min-w-0 items-center gap-2 md:flex">
+        <Wordmark compact />
+        <span className="mx-1 h-4 w-px bg-border" />
+        <h1 className="truncate text-[13px] font-bold tracking-tight text-foreground">
           {page?.label ?? "Alpha Worship One"}
         </h1>
-        <span className="shrink-0 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-primary">
+        <span className="shrink-0 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em] text-primary">
           {page?.sub ?? "Workspace"}
         </span>
       </div>
 
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="ml-auto flex items-center gap-1">
         <Button
           variant="ghost"
           size="icon"
@@ -293,7 +299,7 @@ function TopBar({ page }: { page: NavItem | undefined }) {
         </Button>
         <button
           onClick={() => navigate("/dashboard/settings")}
-          className="ml-1 flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-2.5 transition-colors hover:border-primary/40"
+          className="ml-1 flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card py-0.5 pl-0.5 pr-2 transition-colors hover:border-primary/40"
           title="Profile & settings"
         >
           <Avatar className="h-6 w-6">
@@ -307,6 +313,123 @@ function TopBar({ page }: { page: NavItem | undefined }) {
         </button>
       </div>
     </header>
+  );
+}
+
+/** Live clock — the small detail that makes the frame feel like a native app. */
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+      {now.toLocaleTimeString("en-US", { hour12: false })}
+      <span className="hidden lg:inline">
+        {" · "}
+        {now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+      </span>
+    </span>
+  );
+}
+
+/** Desktop-app status bar: live connection state across the bottom edge. */
+function StatusBar() {
+  const connections = useQuery(api.connections.list);
+  const sub = useQuery(api.subscriptions.mySubscription);
+  const obs = useObs();
+  const navigate = useNavigate();
+
+  const obsConn = (connections ?? []).find((c) => c.app === "obs");
+  const pewbeam = (connections ?? []).find((c) => c.app === "pewbeam" && c.url);
+  const targets = useQuery(api.streams.list);
+
+  const obsOnline = obs.status === "connected";
+  const obsLabel = obsOnline
+    ? obs.streaming
+      ? "LIVE"
+      : obs.currentScene
+        ? `Scene · ${obs.currentScene}`
+        : "Connected"
+    : obs.status === "connecting"
+      ? "Connecting…"
+      : obs.status === "error"
+        ? "OBS error"
+        : obsConn?.enabled
+          ? "OBS configured"
+          : "OBS offline";
+
+  const planLabel =
+    sub?.access === "pro"
+      ? sub.trialActive
+        ? "PRO TRIAL"
+        : "PRO"
+      : sub?.trialExpired
+        ? "UPGRADE"
+        : "FREE";
+
+  return (
+    <footer className="flex h-8 shrink-0 items-center gap-3 overflow-x-auto border-t border-border bg-card/70 px-3 backdrop-blur">
+      <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            obsOnline ? "bg-emerald-400" : "bg-muted-foreground/40",
+          )}
+        />
+        Alpha Worship One
+      </span>
+
+      <span className="hidden h-3 w-px shrink-0 bg-border sm:block" />
+
+      {/* OBS */}
+      <button
+        onClick={() => navigate("/dashboard/control")}
+        className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        title="Open Live Stream Studio"
+      >
+        {obsOnline ? <Wifi className="h-3 w-3 text-emerald-400" /> : <WifiOff className="h-3 w-3 text-muted-foreground/60" />}
+        <span className={obsOnline && obs.streaming ? "text-red-400" : obsOnline ? "text-emerald-400" : ""}>
+          {obsLabel}
+        </span>
+      </button>
+
+      {/* PewBeam */}
+      <button
+        onClick={() => navigate("/dashboard/integrations")}
+        className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        title="Open Integrations"
+      >
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            pewbeam ? "bg-emerald-400" : "bg-muted-foreground/40",
+          )}
+        />
+        {pewbeam ? "PewBeam ready" : "PewBeam not set"}
+      </button>
+
+      {/* Stream targets */}
+      <span className="hidden shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground md:flex">
+        <Radio className="h-3 w-3 text-muted-foreground/60" />
+        {(targets ?? []).length} target{(targets ?? []).length === 1 ? "" : "s"}
+      </span>
+
+      <span className="ml-auto flex shrink-0 items-center gap-3">
+        <span
+          className={cn(
+            "rounded border px-1.5 py-px font-mono text-[8px] uppercase tracking-[0.18em]",
+            sub?.access === "pro"
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : "border-border text-muted-foreground",
+          )}
+        >
+          {planLabel}
+        </span>
+        <LiveClock />
+      </span>
+    </footer>
   );
 }
 
@@ -335,17 +458,21 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
         <SidebarBody admin={!!isAdmin} />
       </aside>
 
-      <div className="md:pl-64">
-        <TopBar page={page} />
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:px-8 md:py-8">
-          <Outlet />
+      {/* App column: title bar · content · status bar */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <TitleBar page={page} />
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 md:px-7">
+            <Outlet />
+          </div>
         </main>
+        <StatusBar />
       </div>
     </div>
   );
