@@ -130,6 +130,31 @@ Optional cloud media storage for uploads, activated with client keys:
 `media`. Until the keys are set, uploads fall back to built-in Convex storage
 (`src/lib/supabase.ts`, `src/pages/app/Upload.tsx`).
 
+### Gemini AI (sermon summaries & verse explanations)
+
+- Backend key: `GEMINI_API_KEY` (Google AI Studio; `GOOGLE_API_KEY` is accepted
+  as an alias).
+- `src/convex/gemini.ts` calls the Gemini REST API (`gemini-2.0-flash`,
+  JSON mode) from `"use node"` actions — the key never reaches the client.
+- Scripture page: **Summarize with AI** (title, summary, key points, suggested
+  references from a pasted transcript) and **Explain** (reverent 2–3 sentence
+  intro for any detected verse).
+
+### Bible API (passage lookup)
+
+- Backend key: `BIBLE_API_KEY` (scripture.api.bible). Optional `BIBLE_ID`
+  overrides the default KJV bible (`de4e12af7f28f599-02`).
+- `src/convex/bible.ts` resolves any reference (book/chapter/verse from the
+  client-side parser) to an API.Bible passage id (`src/lib/bible-refs.ts`).
+- Scripture page: **Reference lookup** fetches any passage; detected verses
+  without built-in text get a **Fetch text** action.
+
+### Integration status
+
+`src/convex/integrations.ts` (`status` action) reports which server keys are
+configured; the Settings → Integrations grid reflects it live (Stripe,
+Paystack, Gemini, Bible API) alongside the client-side Supabase check.
+
 ### Desktop integrations
 
 - **OBS Studio** — real obs-websocket v5 client in `src/lib/obs.ts` (browser

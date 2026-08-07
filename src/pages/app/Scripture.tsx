@@ -1,36 +1,64 @@
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
-import { CURATED_VERSES, detectVerses } from "@/lib/scripture";
+import { CURATED_VERSES, detectVerses, parseBibleReferences } from "@/lib/scripture";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   BookOpenText,
+  BookUp,
   Loader2,
   Mic,
   Projector,
   Save,
   ScanSearch,
+  Sparkles,
   Trash2,
   Wand2,
 } from "lucide-react";
+
+interface SermonSummary {
+  title: string;
+  summary: string;
+  keyPoints: string[];
+  suggestedReferences: string[];
+}
+
+interface FetchedVerse {
+  text: string;
+  copyright?: string;
+}
 
 export default function Scripture() {
   const transcripts = useQuery(api.transcripts.list);
   const connections = useQuery(api.connections.list);
   const createTranscript = useMutation(api.transcripts.create);
   const removeTranscript = useMutation(api.transcripts.remove);
+  const summarizeSermon = useAction(api.gemini.summarizeSermon);
+  const explainVerse = useAction(api.gemini.explainVerse);
+  const lookupPassage = useAction(api.bible.lookupPassage);
 
   const [text, setText] = useState("");
   const [title, setTitle] = useState("");
   const [detected, setDetected] = useState<{ reference: string; text: string }[]>([]);
   const [libraryQuery, setLibraryQuery] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // AI (Gemini) + Bible API state
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiResult, setAiResult] = useState<SermonSummary | null>(null);
+  const [explanation, setExplanation] = useState<{ reference: string; text: string } | null>(null);
+  const [explainBusy, setExplainBusy] = useState(false);
+  const [fetched, setFetched] = useState<Record<string, FetchedVerse>>({});
+  const [fetching, setFetching] = useState<string | null>(null);
+  const [bibleQuery, setBibleQuery] = useState("");
+  const [bibleResult, setBibleResult] = useState<{ reference: string; text: string; copyright?: string } | null>(null);
+  const [bibleBusy, setBibleBusy] = useState(false);
 
   const verseCount = (transcripts ?? []).reduce((s, t) => s + t.verses.length, 0);
 
@@ -65,6 +93,8 @@ export default function Scripture() {
       setText("");
       setTitle("");
       setDetected([]);
+      setAiResult(null);
+      setExplanation(null);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -93,6 +123,97 @@ export default function Scripture() {
     }
   };
 
+  // ---- AI + Bible API helpers --------------------------------------------
+
+  const lookupRef = async (q: string) => {
+    const parsed = parseBibleReferences(q)[0];
+    if (!parsed) throw new Error(`Couldn't parse “${q}” as a Bible reference`);
+    return lookupPassage({
+      book: parsed.book,
+      chapter: parsed.chapter,
+      verse: parsed.verse,
+      verseEnd: parsed.verseEnd,
+      chapterEnd: parsed.chapterEnd,
+    });
+  };
+
+  const handleSummarize = async () => {
+    if (!text.trim()) {
+      toast.error("Paste a sermon transcript first");
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const result = await summarizeSermon({ transcript: text });
+      setAiResult(result);
+      if (result.title && !title.trim()) setTitle(result.title);
+      toast.success("AI summary ready");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const handleFetchVerse = async (reference: string) => {
+    setFetching(reference);
+    try {
+      const res = await lookupRef(reference);
+      setFetched((prev) => ({
+        ...prev,
+        [reference]: { text: res.text, copyright: res.copyright },
+      }));
+      toast.success(`Fetched ${res.reference || reference}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setFetching(null);
+    }
+  };
+
+  const handleExplain = async (reference: string, verseText: string) => {
+    setExplainBusy(true);
+    setExplanation(null);
+    try {
+      const res = await explainVerse({ reference, text: verseText || undefined });
+      setExplanation({ reference, text: res.explanation });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setExplainBusy(false);
+    }
+  };
+
+  const handleBibleLookup = async () => {
+    const q = bibleQuery.trim();
+    if (!q) {
+      toast.error("Enter a reference like John 3:16");
+      return;
+    }
+    setBibleBusy(true);
+    try {
+      const res = await lookupRef(q);
+      setBibleResult({ reference: res.reference || q, text: res.text, copyright: res.copyright });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBibleBusy(false);
+    }
+  };
+
+  const lookupSuggestion = async (reference: string) => {
+    setBibleBusy(true);
+    try {
+      const res = await lookupRef(reference);
+      setBibleResult({ reference: res.reference || reference, text: res.text, copyright: res.copyright });
+      toast.success(`Fetched ${res.reference || reference}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBibleBusy(false);
+    }
+  };
+
   const library = useMemo(() => {
     const q = libraryQuery.trim().toLowerCase();
     return CURATED_VERSES.filter(
@@ -108,7 +229,7 @@ export default function Scripture() {
       <PageHeader
         eyebrow="Verse detection"
         title="Scripture"
-        description="Paste a sermon transcript and Alpha Worship One detects every Bible reference — then project the verses live through Pewbeam."
+        description="Paste a sermon transcript and Alpha Worship One detects every Bible reference — then project the verses live through Pewbeam. Fetch full passage text from the Bible API, or let Gemini summarize and explain."
         actions={
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
             <ScanSearch className="h-3 w-3" />
@@ -137,13 +258,27 @@ export default function Scripture() {
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              rows={12}
+              rows={10}
               placeholder={"Paste the sermon transcript here…\n\n“We read in John 3:16 that God so loved the world. And as Paul reminds us in Philippians 4:13…”"}
               className="font-mono text-xs leading-5"
             />
             <div className="mt-3 flex flex-wrap gap-2">
               <Button size="sm" className="cursor-pointer gap-1.5" onClick={runDetection}>
                 <Wand2 className="h-3.5 w-3.5" /> Detect verses
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="cursor-pointer gap-1.5"
+                onClick={handleSummarize}
+                disabled={aiBusy}
+              >
+                {aiBusy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5 text-accent" />
+                )}
+                Summarize with AI
               </Button>
               <Input
                 value={title}
@@ -168,36 +303,147 @@ export default function Scripture() {
             </div>
           </div>
 
+          {/* AI summary */}
+          {(aiResult || explainBusy) && (
+            <div className="rounded-xl border border-accent/30 bg-accent/5 p-4">
+              <p className="mb-3 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+                <Sparkles className="h-3 w-3" /> AI studio · Gemini
+              </p>
+              {explainBusy ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Gemini is explaining the verse…
+                </div>
+              ) : (
+                aiResult && (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-bold tracking-tight text-foreground">
+                        {aiResult.title}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-foreground/85">
+                        {aiResult.summary}
+                      </p>
+                    </div>
+                    {aiResult.keyPoints.length > 0 && (
+                      <ul className="flex flex-col gap-1.5">
+                        {aiResult.keyPoints.map((k, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
+                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
+                            {k}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {aiResult.suggestedReferences.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Suggested references
+                        </span>
+                        {aiResult.suggestedReferences.map((r, i) => (
+                          <button
+                            key={i}
+                            className="cursor-pointer rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent transition-colors hover:bg-accent/20"
+                            onClick={() => lookupSuggestion(r)}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {/* Explanation */}
+          {explanation && !explainBusy && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="mb-2 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+                <Sparkles className="h-3 w-3" /> Intro for {explanation.reference}
+              </p>
+              <p className="text-xs leading-5 text-foreground/85">{explanation.text}</p>
+            </div>
+          )}
+
           {detected.length > 0 && (
             <div className="rounded-xl border border-border bg-card p-4">
               <p className="tech-label mb-3">
                 Detected references · {detected.length}
               </p>
               <div className="flex flex-col gap-2">
-                {detected.map((v, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 rounded-lg border border-accent/25 bg-accent/5 p-3"
-                  >
-                    <BookOpenText className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold tracking-tight text-accent">
-                        {v.reference}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-foreground/85">
-                        {v.text || "Verse text not in the built-in library — add it to the catalog to project."}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0 cursor-pointer gap-1.5"
-                      onClick={() => projectVerse(v.reference)}
+                {detected.map((v, i) => {
+                  const fetchedText = fetched[v.reference]?.text;
+                  const displayText = v.text || fetchedText;
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-lg border border-accent/25 bg-accent/5 p-3"
                     >
-                      <Projector className="h-3.5 w-3.5" /> Project
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex items-start gap-3">
+                        <BookOpenText className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold tracking-tight text-accent">
+                            {v.reference}
+                          </p>
+                          {displayText ? (
+                            <p className="mt-1 text-xs leading-5 text-foreground/85">
+                              {displayText}
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              No text yet — fetch it from the Bible API.
+                            </p>
+                          )}
+                          {fetched[v.reference]?.copyright && (
+                            <p className="mt-1 font-mono text-[9px] text-muted-foreground/70">
+                              {fetched[v.reference].copyright}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 cursor-pointer gap-1.5 px-2.5"
+                            onClick={() => projectVerse(v.reference)}
+                          >
+                            <Projector className="h-3.5 w-3.5" /> Project
+                          </Button>
+                          <div className="flex gap-1.5">
+                            {!displayText && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 cursor-pointer gap-1 px-2 text-[10px]"
+                                onClick={() => handleFetchVerse(v.reference)}
+                                disabled={fetching === v.reference}
+                              >
+                                {fetching === v.reference ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <BookUp className="h-3 w-3" />
+                                )}
+                                Fetch text
+                              </Button>
+                            )}
+                            {displayText && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 cursor-pointer gap-1 px-2 text-[10px]"
+                                onClick={() => handleExplain(v.reference, displayText)}
+                                disabled={explainBusy}
+                              >
+                                <Sparkles className="h-3 w-3 text-accent" /> Explain
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -244,8 +490,63 @@ export default function Scripture() {
           </div>
         </div>
 
-        {/* Verse library */}
-        <div className="lg:col-span-2">
+        {/* Right rail: lookup + verse library */}
+        <div className="space-y-4 lg:col-span-2">
+          {/* Bible API lookup */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="mb-3 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+              <BookOpenText className="h-3 w-3" /> Reference lookup · Bible API
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={bibleQuery}
+                onChange={(e) => setBibleQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleBibleLookup()}
+                placeholder="John 3:16"
+                className="text-xs"
+              />
+              <Button
+                size="sm"
+                className="shrink-0 cursor-pointer gap-1.5"
+                onClick={handleBibleLookup}
+                disabled={bibleBusy}
+              >
+                {bibleBusy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <BookUp className="h-3.5 w-3.5" />
+                )}
+                Fetch
+              </Button>
+            </div>
+            {bibleResult && (
+              <div className="mt-3 rounded-lg border border-border bg-secondary/30 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold tracking-tight text-accent">
+                    {bibleResult.reference}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 cursor-pointer gap-1 px-2 text-[10px]"
+                    onClick={() => projectVerse(bibleResult.reference)}
+                  >
+                    <Projector className="h-3 w-3" /> Project
+                  </Button>
+                </div>
+                <p className="mt-1.5 text-[11px] leading-5 text-foreground/80">
+                  {bibleResult.text || "No text returned."}
+                </p>
+                {bibleResult.copyright && (
+                  <p className="mt-1.5 font-mono text-[9px] text-muted-foreground/70">
+                    {bibleResult.copyright}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Verse library */}
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="tech-label mb-3">Verse library · KJV</p>
             <Input
@@ -254,11 +555,16 @@ export default function Scripture() {
               placeholder="Search by reference or text…"
               className="mb-3 text-xs"
             />
-            <div className="flex max-h-[520px] flex-col gap-2 overflow-y-auto pr-1">
+            <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
               {library.map((v) => (
                 <div
                   key={v.reference}
-                  className="rounded-lg border border-border bg-secondary/30 p-3"
+                  className={cn(
+                    "rounded-lg border p-3",
+                    bibleResult?.reference === v.reference
+                      ? "border-accent/40 bg-accent/10"
+                      : "border-border bg-secondary/30",
+                  )}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-bold tracking-tight text-accent">

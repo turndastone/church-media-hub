@@ -1,6 +1,6 @@
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { getSupabaseEnv, testSupabaseConnection } from "@/lib/supabase";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
+  BookOpenText,
   Cable,
   CheckCircle2,
   CircleDashed,
@@ -17,6 +18,7 @@ import {
   MonitorPlay,
   Radio,
   Save,
+  Sparkles,
   Wand2,
 } from "lucide-react";
 
@@ -29,6 +31,35 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [supaStatus, setSupaStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [testingSupa, setTestingSupa] = useState(false);
+
+  const integrationStatus = useAction(api.integrations.status);
+  const [serverKeys, setServerKeys] = useState<{
+    stripe: boolean;
+    paystack: boolean;
+    gemini: boolean;
+    bibleApi: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    integrationStatus()
+      .then((s) => {
+        if (!cancelled) setServerKeys(s);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setServerKeys({
+            stripe: false,
+            paystack: false,
+            gemini: false,
+            bibleApi: false,
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [integrationStatus]);
 
   const supabaseOn = !!getSupabaseEnv();
 
@@ -87,15 +118,29 @@ export default function Settings() {
       label: "Stripe",
       icon: CheckCircle2,
       desc: "USD billing for the Pro plan.",
-      configured: false,
+      configured: serverKeys?.stripe ?? false,
       detail: "Add STRIPE_SECRET_KEY, STRIPE_PRO_PRICE_ID, STRIPE_WEBHOOK_SECRET in the project keys.",
     },
     {
       label: "Paystack",
       icon: CheckCircle2,
       desc: "NGN billing for Nigerian teams.",
-      configured: false,
+      configured: serverKeys?.paystack ?? false,
       detail: "Add PAYSTACK_SECRET_KEY (and optional PAYSTACK_PLAN_CODE) in the project keys.",
+    },
+    {
+      label: "Gemini",
+      icon: Sparkles,
+      desc: "AI sermon summaries and verse explanations.",
+      configured: serverKeys?.gemini ?? false,
+      detail: "Add GEMINI_API_KEY from Google AI Studio to power AI features in Scripture.",
+    },
+    {
+      label: "Bible API",
+      icon: BookOpenText,
+      desc: "Full passage text by reference (KJV default).",
+      configured: serverKeys?.bibleApi ?? false,
+      detail: "Add BIBLE_API_KEY from scripture.api.bible to look up any passage.",
     },
   ];
 
@@ -156,19 +201,25 @@ export default function Settings() {
                 <p className="text-sm font-semibold tracking-tight text-foreground">
                   {it.label}
                 </p>
-                <span
-                  className={cn(
-                    "ml-auto flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.18em]",
-                    it.configured ? "text-emerald-400" : "text-muted-foreground",
-                  )}
-                >
-                  {it.configured ? (
-                    <CheckCircle2 className="h-3 w-3" />
-                  ) : (
-                    <CircleDashed className="h-3 w-3" />
-                  )}
-                  {it.configured ? "Ready" : "Keys needed"}
-                </span>
+                {serverKeys === null ? (
+                  <span className="ml-auto flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Detecting
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "ml-auto flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.18em]",
+                      it.configured ? "text-emerald-400" : "text-muted-foreground",
+                    )}
+                  >
+                    {it.configured ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : (
+                      <CircleDashed className="h-3 w-3" />
+                    )}
+                    {it.configured ? "Ready" : "Keys needed"}
+                  </span>
+                )}
               </div>
               <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
                 {it.detail}
