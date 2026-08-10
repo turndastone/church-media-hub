@@ -1,10 +1,45 @@
 // Optional Supabase integration for cloud media storage.
-// Activated by VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY in the project keys.
-// Until those are set, the app gracefully falls back to Convex storage.
+// Activated by VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY in the project keys,
+// or by saving the same keys on the in-app API Keys page (stored encrypted).
+// Until either is set, the app gracefully falls back to Convex storage.
+
+import { useAction } from "convex/react";
+import { useEffect, useState } from "react";
+import { api } from "@/convex/_generated/api";
 
 export interface SupabaseEnv {
   url: string;
   anonKey: string;
+}
+
+/**
+ * Reactive Supabase env: in-app stored keys first, then VITE_* env vars.
+ * Returns null while loading or when neither source is configured.
+ */
+export function useSupabaseEnv(): SupabaseEnv | null {
+  const getClientKeys = useAction(api.apiKeys.getClientKeys);
+  const [stored, setStored] = useState<SupabaseEnv | null | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    let active = true;
+    getClientKeys()
+      .then((k) => {
+        if (active) setStored(k ? { url: k.url, anonKey: k.anonKey } : null);
+      })
+      .catch(() => {
+        if (active) setStored(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [getClientKeys]);
+
+  const env = getSupabaseEnv();
+  if (env) return env;
+  if (stored === undefined) return null;
+  return stored;
 }
 
 export function getSupabaseEnv(): SupabaseEnv | null {
@@ -16,13 +51,14 @@ export function getSupabaseEnv(): SupabaseEnv | null {
 
 /**
  * Upload a file to a public Supabase Storage bucket.
- * Returns the public URL of the object, or null on failure.
+ * Returns the public URL of the object, or an error.
  */
 export async function uploadToSupabase(
   file: File,
   bucket = "media",
+  envOverride?: SupabaseEnv | null,
 ): Promise<{ url: string } | { error: string }> {
-  const env = getSupabaseEnv();
+  const env = envOverride ?? getSupabaseEnv();
   if (!env) {
     return { error: "Supabase keys are not configured." };
   }
@@ -53,11 +89,13 @@ export async function uploadToSupabase(
   }
 }
 
-export async function testSupabaseConnection(): Promise<{
+export async function testSupabaseConnection(
+  envOverride?: SupabaseEnv | null,
+): Promise<{
   ok: boolean;
   message: string;
 }> {
-  const env = getSupabaseEnv();
+  const env = envOverride ?? getSupabaseEnv();
   if (!env) return { ok: false, message: "Keys not configured" };
   try {
     const res = await fetch(`${env.url}/storage/v1/bucket`, {

@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { PRO_PRICE_NGN_KOBO } from "./pricing";
 import { billingProviderValidator } from "./schema";
+import { resolveSecret } from "./apiKeys";
 
 /**
  * Creates a checkout session with Stripe (USD) or Paystack (NGN).
@@ -23,11 +24,11 @@ export const createCheckoutSession = action({
     if (!userId) throw new Error("Not signed in");
 
     if (args.provider === "stripe") {
-      const key = process.env.STRIPE_SECRET_KEY;
-      const priceId = process.env.STRIPE_PRO_PRICE_ID;
+      const key = await resolveSecret(ctx, "STRIPE_SECRET_KEY");
+      const priceId = await resolveSecret(ctx, "STRIPE_PRO_PRICE_ID");
       if (!key || !priceId) {
         throw new Error(
-          "Stripe isn't configured yet — add STRIPE_SECRET_KEY and STRIPE_PRO_PRICE_ID in the project keys.",
+          "Stripe isn't configured yet — add STRIPE_SECRET_KEY and STRIPE_PRO_PRICE_ID in API Keys.",
         );
       }
       const params = new URLSearchParams();
@@ -57,13 +58,13 @@ export const createCheckoutSession = action({
     }
 
     // Paystack (Nigerian Naira)
-    const key = process.env.PAYSTACK_SECRET_KEY;
+    const key = await resolveSecret(ctx, "PAYSTACK_SECRET_KEY");
     if (!key) {
       throw new Error(
-        "Paystack isn't configured yet — add PAYSTACK_SECRET_KEY in the project keys.",
+        "Paystack isn't configured yet — add PAYSTACK_SECRET_KEY in API Keys.",
       );
     }
-    const planCode = process.env.PAYSTACK_PLAN_CODE;
+    const planCode = await resolveSecret(ctx, "PAYSTACK_PLAN_CODE");
     const user = await ctx.runQuery(api.users.currentUser);
     const email = user?.email ?? `${userId}@alpha-worship.local`;
     const reference = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -111,7 +112,7 @@ export const cancelSubscription = action({
     if (!sub) throw new Error("No active subscription found.");
 
     if (sub.provider === "stripe" && sub.providerSubscriptionId) {
-      const key = process.env.STRIPE_SECRET_KEY;
+      const key = await resolveSecret(ctx, "STRIPE_SECRET_KEY");
       if (!key) {
         throw new Error("Stripe isn't configured — cannot reach the billing provider.");
       }

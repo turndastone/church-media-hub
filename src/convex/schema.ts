@@ -210,6 +210,14 @@ const schema = defineSchema(
       lastConnectedAt: v.optional(v.number()),
     }).index("by_user", ["userId"]),
 
+    // Deployment-wide service API keys (Gemini, Bible API, Stripe, Paystack,
+    // Supabase client keys). Values are encrypted at rest — see apiKeys.ts.
+    apiKeys: defineTable({
+      key: v.string(),
+      encryptedValue: v.string(),
+      updatedAt: v.number(),
+    }).index("by_key", ["key"]),
+
     // Saved sermon transcripts with detected verses.
     transcripts: defineTable({
       userId: v.id("users"),

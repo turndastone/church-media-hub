@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/page-header";
 import { ACCENT_SWATCHES, accentGradient } from "@/components/catalog-meta";
 import { cn } from "@/lib/utils";
-import { getSupabaseEnv, uploadToSupabase } from "@/lib/supabase";
+import { uploadToSupabase, useSupabaseEnv } from "@/lib/supabase";
 import type { Id } from "@/convex/_generated/dataModel";
 import { ImagePlus, Loader2, UploadCloud } from "lucide-react";
 
@@ -43,13 +43,14 @@ export default function Upload() {
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const supabaseOn = !!getSupabaseEnv();
+  const supaEnv = useSupabaseEnv();
+  const supabaseOn = !!supaEnv;
 
   const handleCoverFile = async (file: File) => {
     setUploadingCover(true);
     try {
       if (supabaseOn) {
-        const res = await uploadToSupabase(file);
+        const res = await uploadToSupabase(file, "media", supaEnv);
         if ("url" in res) {
           setCoverUrl(res.url);
           setCoverStorageId(undefined);

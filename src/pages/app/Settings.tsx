@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
-import { getSupabaseEnv, testSupabaseConnection } from "@/lib/supabase";
+import { testSupabaseConnection, useSupabaseEnv } from "@/lib/supabase";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   CircleDashed,
   Database,
+  KeyRound,
   Loader2,
   MonitorPlay,
   Radio,
@@ -63,7 +64,8 @@ export default function Settings() {
     };
   }, [integrationStatus]);
 
-  const supabaseOn = !!getSupabaseEnv();
+  const supaEnv = useSupabaseEnv();
+  const supabaseOn = !!supaEnv;
 
   const connByApp = new Map((connections ?? []).map((c) => [c.app, c]));
 
@@ -82,7 +84,7 @@ export default function Settings() {
   const handleTestSupabase = async () => {
     setTestingSupa(true);
     try {
-      setSupaStatus(await testSupabaseConnection());
+      setSupaStatus(await testSupabaseConnection(supaEnv));
     } finally {
       setTestingSupa(false);
     }
@@ -194,7 +196,17 @@ export default function Settings() {
 
       {/* Integrations */}
       <section className="rounded-xl border border-border bg-card p-5">
-        <p className="tech-label mb-4">Integrations</p>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="tech-label">Integrations</p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="cursor-pointer gap-1.5"
+            onClick={() => navigate("/dashboard/keys")}
+          >
+            <KeyRound className="h-3.5 w-3.5" /> Manage API keys
+          </Button>
+        </div>
         <div className="grid gap-3 lg:grid-cols-3">
           {INTEGRATIONS.map((it) => (
             <div key={it.label} className="rounded-lg border border-border bg-secondary/30 p-4">

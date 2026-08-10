@@ -17,6 +17,7 @@ const Workspace = lazy(() => import("./pages/app/Workspace.tsx"));
 const Overview = lazy(() => import("./pages/app/Overview.tsx"));
 const ControlRoom = lazy(() => import("./pages/app/ControlRoom.tsx"));
 const Integrations = lazy(() => import("./pages/app/Integrations.tsx"));
+const ApiKeys = lazy(() => import("./pages/app/ApiKeys.tsx"));
 const Services = lazy(() => import("./pages/app/Services.tsx"));
 const Catalog = lazy(() => import("./pages/app/Catalog.tsx"));
 const CatalogItem = lazy(() => import("./pages/app/CatalogItem.tsx"));
@@ -148,6 +149,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="overview" element={<Overview />} />
                 <Route path="control" element={<ControlRoom />} />
                 <Route path="integrations" element={<Integrations />} />
+                <Route path="keys" element={<ApiKeys />} />
                 <Route path="services" element={<Services />} />
                 <Route path="catalog" element={<Catalog />} />
                 <Route path="catalog/:id" element={<CatalogItem />} />

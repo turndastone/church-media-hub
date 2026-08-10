@@ -71,7 +71,11 @@ http.route({
   path: "/stripe-webhook",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    const secret =
+      process.env.STRIPE_WEBHOOK_SECRET ||
+      (await ctx.runAction(internal.apiKeys.getSecret, {
+        key: "STRIPE_WEBHOOK_SECRET",
+      }));
     const signature = request.headers.get("stripe-signature");
     if (!secret || !signature) {
       return new Response("Missing webhook configuration", { status: 400 });
@@ -125,7 +129,11 @@ http.route({
   path: "/paystack-webhook",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const secret = process.env.PAYSTACK_SECRET_KEY;
+    const secret =
+      process.env.PAYSTACK_SECRET_KEY ||
+      (await ctx.runAction(internal.apiKeys.getSecret, {
+        key: "PAYSTACK_SECRET_KEY",
+      }));
     const signature = request.headers.get("x-paystack-signature");
     if (!secret || !signature) {
       return new Response("Missing webhook configuration", { status: 400 });

@@ -2,20 +2,21 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
+import { resolveSecret } from "./apiKeys";
 
 /**
  * Google Gemini (AI Studio) integration. Backend key: GEMINI_API_KEY
- * (GOOGLE_API_KEY is accepted as an alias). All prompts request JSON output.
+ * (GOOGLE_API_KEY is accepted as an alias). Keys can be set in the in-app
+ * API Keys page (stored encrypted) or in the platform Keys tab. All prompts
+ * request JSON output.
  */
 const MODEL = "gemini-2.0-flash";
 
-async function geminiJson(prompt: string, temperature = 0.6): Promise<unknown> {
-  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!key) {
-    throw new Error(
-      "Gemini isn't configured yet — add GEMINI_API_KEY in the project keys.",
-    );
-  }
+async function geminiJson(
+  prompt: string,
+  key: string,
+  temperature = 0.6,
+): Promise<unknown> {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(key)}`,
     {
@@ -53,8 +54,16 @@ export interface SermonSummary {
 /** Summarize a sermon transcript for the projection/media team. */
 export const summarizeSermon = action({
   args: { transcript: v.string() },
-  handler: async (_, args): Promise<SermonSummary> => {
+  handler: async (ctx, args): Promise<SermonSummary> => {
     if (!args.transcript.trim()) throw new Error("Transcript is empty.");
+    const key =
+      (await resolveSecret(ctx, "GEMINI_API_KEY")) ??
+      process.env.GOOGLE_API_KEY;
+    if (!key) {
+      throw new Error(
+        "Gemini isn't configured yet — add a key in API Keys or the project keys.",
+      );
+    }
     const prompt = `You are the media assistant for Alpha Worship One, a church presentation tool used by media teams to project scripture and run live services.
 
 Given a sermon transcript, produce a concise operational summary for the projection team.
@@ -71,7 +80,7 @@ Transcript:
 """
 ${args.transcript}
 """`;
-    const raw = (await geminiJson(prompt, 0.6)) as Partial<SermonSummary>;
+    const raw = (await geminiJson(prompt, key, 0.6)) as Partial<SermonSummary>;
     return {
       title:
         typeof raw.title === "string" && raw.title.trim()
@@ -101,7 +110,15 @@ export const explainVerse = action({
     reference: v.string(),
     text: v.optional(v.string()),
   },
-  handler: async (_, args): Promise<{ explanation: string }> => {
+  handler: async (ctx, args): Promise<{ explanation: string }> => {
+    const key =
+      (await resolveSecret(ctx, "GEMINI_API_KEY")) ??
+      process.env.GOOGLE_API_KEY;
+    if (!key) {
+      throw new Error(
+        "Gemini isn't configured yet — add a key in API Keys or the project keys.",
+      );
+    }
     const prompt = `You are the media assistant for Alpha Worship One, a church presentation tool.
 Explain the following Bible verse in 2-3 plain sentences that a media operator could read aloud as an intro before projecting it. Keep it clear, reverent, and non-denominational.
 
@@ -110,7 +127,7 @@ Text: ${args.text || "(verse text unavailable — explain the reference itself)"
 
 Return ONLY JSON with exactly this shape:
 { "explanation": "the explanation" }`;
-    const raw = (await geminiJson(prompt, 0.7)) as { explanation?: unknown };
+    const raw = (await geminiJson(prompt, key, 0.7)) as { explanation?: unknown };
     return {
       explanation:
         typeof raw.explanation === "string" && raw.explanation.trim()

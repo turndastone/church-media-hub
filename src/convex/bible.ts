@@ -3,12 +3,15 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { toPassageId } from "../lib/bible-refs";
+import { resolveSecret } from "./apiKeys";
 
 /**
  * API.Bible (American Bible Society) scripture lookup.
  * Backend key: BIBLE_API_KEY. Optional BIBLE_ID overrides the default KJV.
- * The `version` arg accepts a Bible abbreviation (KJV, NIV, ESV, NLT…) that
- * is resolved to a bible id from the /bibles listing (cached per instance).
+ * Keys can be set in the in-app API Keys page (stored encrypted) or in the
+ * platform Keys tab. The `version` arg accepts a Bible abbreviation (KJV,
+ * NIV, ESV, NLT…) that is resolved to a bible id from the /bibles listing
+ * (cached per instance).
  */
 const API = "https://api.scripture.api.bible/v1";
 const KJV_BIBLE_ID = "de4e12af7f28f599-02";
@@ -58,11 +61,11 @@ export const lookupPassage = action({
     chapterEnd: v.optional(v.number()),
     version: v.optional(v.string()),
   },
-  handler: async (_, args): Promise<PassageResult> => {
-    const key = process.env.BIBLE_API_KEY;
+  handler: async (ctx, args): Promise<PassageResult> => {
+    const key = await resolveSecret(ctx, "BIBLE_API_KEY");
     if (!key) {
       throw new Error(
-        "Bible API isn't configured yet — add BIBLE_API_KEY in the project keys.",
+        "Bible API isn't configured yet — add a key in API Keys or the project keys.",
       );
     }
     const passage = toPassageId(args);
@@ -71,7 +74,8 @@ export const lookupPassage = action({
     }
 
     const want = (args.version ?? "KJV").toUpperCase();
-    let bibleId = process.env.BIBLE_ID || KJV_BIBLE_ID;
+    let bibleId =
+      (await resolveSecret(ctx, "BIBLE_ID")) || process.env.BIBLE_ID || KJV_BIBLE_ID;
     if (want !== "KJV") {
       bibleId = (await resolveBibleId(key, want)) ?? bibleId;
     }
