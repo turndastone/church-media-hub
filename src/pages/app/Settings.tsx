@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { testSupabaseConnection, useSupabaseEnv } from "@/lib/supabase";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { SetupChecklist } from "@/components/SetupChecklist";
 import {
   BookOpenText,
   Cable,
@@ -161,6 +162,9 @@ export default function Settings() {
         title="Settings"
         description="Profile, integration keys, and saved desktop connections."
       />
+
+      {/* First-run setup checklist */}
+      <SetupChecklist />
 
       {/* Profile */}
       <section className="rounded-xl border border-border bg-card p-5">
