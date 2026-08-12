@@ -34,7 +34,6 @@ import {
   Sparkles,
   Sunrise,
   Twitter,
-  Users,
   Youtube,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";

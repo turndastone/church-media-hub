@@ -34,13 +34,13 @@ export function ChurchChat() {
     info?.welcomeMessage ??
     "Welcome to RCCG Solution Ambassador! Ask me anything about our programs, service times, location, or how to reach us. God bless you!";
 
-  // Seed the conversation with the welcome message on first open.
-  useEffect(() => {
-    if (open && messages.length === 0) {
+  // Seed the conversation with the welcome message the first time the chat opens.
+  const toggleChat = () => {
+    if (!open && messages.length === 0) {
       setMessages([{ role: "assistant", content: welcome }]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+    setOpen((o) => !o);
+  };
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -103,7 +103,7 @@ export function ChurchChat() {
       <motion.button
         type="button"
         aria-label="Chat with the church welcome assistant"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleChat}
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.6, duration: 0.3 }}

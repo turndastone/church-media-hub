@@ -269,7 +269,7 @@ export const saveInfo = mutation({
     socials: v.array(churchSocialValidator),
   },
   handler: async (ctx, args) => {
-    const user = await getEditor(ctx);
+    await getEditor(ctx);
     const info = await ctx.db.query("churchInfo").first();
     const { website, ...rest } = args;
     const patch = {

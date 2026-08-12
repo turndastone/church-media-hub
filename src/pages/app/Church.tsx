@@ -1,11 +1,10 @@
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import type { Id } from "@/convex/_generated/dataModel";
-import { useEffect, useMemo, useState } from "react";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/page-header";
@@ -24,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import {
   CalendarDays,
   Church as ChurchIcon,
@@ -95,72 +93,41 @@ const lineListToArray = (value: string) =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-export default function Church() {
-  const info = useQuery(api.church.getInfo);
-  const allPrograms = useQuery(api.church.listAllPrograms);
+/**
+ * Profile editor. State initialises straight from the query result; the parent
+ * remounts this component (via `key`) whenever the profile record changes, so
+ * there is no need to sync state in an effect.
+ */
+function ProfileEditor({
+  info,
+}: {
+  info: Doc<"churchInfo"> | null | undefined;
+}) {
   const saveInfo = useMutation(api.church.saveInfo);
-  const createProgram = useMutation(api.church.createProgram);
-  const updateProgram = useMutation(api.church.updateProgram);
-  const deleteProgram = useMutation(api.church.deleteProgram);
 
-  // ── Profile form state ────────────────────────────────────────────────
-  const [name, setName] = useState("");
-  const [tagline, setTagline] = useState("");
-  const [description, setDescription] = useState("");
-  const [welcomeMessage, setWelcomeMessage] = useState("");
-  const [verse, setVerse] = useState("");
-  const [address, setAddress] = useState("");
-  const [website, setWebsite] = useState("");
-  const [phones, setPhones] = useState("");
-  const [emails, setEmails] = useState("");
-  const [socials, setSocials] = useState<SocialRow[]>([]);
-  const [savingInfo, setSavingInfo] = useState(false);
-
-  useEffect(() => {
-    if (!info) return;
-    setName(info.name);
-    setTagline(info.tagline);
-    setDescription(info.description);
-    setWelcomeMessage(info.welcomeMessage);
-    setVerse(info.verse);
-    setAddress(info.address);
-    setWebsite(info.website ?? "");
-    setPhones(info.phones.join("\n"));
-    setEmails(info.emails.join("\n"));
-    setSocials(info.socials.map((s) => ({ platform: s.platform, url: s.url })));
-  }, [info]);
-
-  // ── Program editor state ──────────────────────────────────────────────
-  const [editing, setEditing] = useState<{ id: Id<"programs"> | null; form: ProgramForm } | null>(
-    null,
+  const [name, setName] = useState(info?.name ?? "");
+  const [tagline, setTagline] = useState(info?.tagline ?? "");
+  const [description, setDescription] = useState(info?.description ?? "");
+  const [welcomeMessage, setWelcomeMessage] = useState(
+    info?.welcomeMessage ?? "",
   );
-  const [deletingId, setDeletingId] = useState<Id<"programs"> | null>(null);
-  const [savingProgram, setSavingProgram] = useState(false);
-
-  const grouped = useMemo(() => {
-    const map: Record<Category, typeof allPrograms> = {
-      daily: [],
-      weekly: [],
-      monthly: [],
-      provincial: [],
-    };
-    for (const p of allPrograms ?? []) {
-      map[p.category as Category]?.push(p);
-    }
-    for (const cat of CATEGORY_ORDER) {
-      map[cat] = [...(map[cat] ?? [])].sort(
-        (a, b) => a.order - b.order || a._creationTime - b._creationTime,
-      );
-    }
-    return map;
-  }, [allPrograms]);
+  const [verse, setVerse] = useState(info?.verse ?? "");
+  const [address, setAddress] = useState(info?.address ?? "");
+  const [website, setWebsite] = useState(info?.website ?? "");
+  const [phones, setPhones] = useState(info?.phones.join("\n") ?? "");
+  const [emails, setEmails] = useState(info?.emails.join("\n") ?? "");
+  const [socials, setSocials] = useState<SocialRow[]>(
+    info?.socials.map((s) => ({ platform: s.platform, url: s.url })) ?? [],
+  );
+  const [savingInfo, setSavingInfo] = useState(false);
 
   const handleSaveInfo = async () => {
     setSavingInfo(true);
     try {
       await saveInfo({
         name: name.trim() || "RCCG Solution Ambassador",
-        tagline: tagline.trim() || "A Parish of the Redeemed Christian Church of God",
+        tagline:
+          tagline.trim() || "A Parish of the Redeemed Christian Church of God",
         description: description.trim(),
         welcomeMessage: welcomeMessage.trim(),
         verse: verse.trim(),
@@ -177,6 +144,228 @@ export default function Church() {
       setSavingInfo(false);
     }
   };
+
+  const dirty =
+    !!info &&
+    (info.name !== (name.trim() || "RCCG Solution Ambassador") ||
+      info.tagline !==
+        (tagline.trim() || "A Parish of the Redeemed Christian Church of God") ||
+      info.description !== description.trim() ||
+      info.welcomeMessage !== welcomeMessage.trim() ||
+      info.verse !== verse.trim() ||
+      info.address !== address.trim() ||
+      (info.website ?? "") !== website.trim() ||
+      info.phones.join("\n") !== phones ||
+      info.emails.join("\n") !== emails ||
+      JSON.stringify(info.socials) !==
+        JSON.stringify(socials.filter((s) => s.url.trim())));
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-5">
+      <div className="mb-5 flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+          <ChurchIcon className="h-4.5 w-4.5" />
+        </span>
+        <div>
+          <p className="text-sm font-bold tracking-tight">Church profile</p>
+          <p className="text-[11px] text-muted-foreground">
+            Shown in the hero, about, and welcome chat on the homepage.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <label className="space-y-1.5">
+          <span className="tech-label">Church name</span>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="space-y-1.5">
+          <span className="tech-label">Tagline</span>
+          <Input value={tagline} onChange={(e) => setTagline(e.target.value)} />
+        </label>
+        <label className="space-y-1.5 lg:col-span-2">
+          <span className="tech-label">Short description</span>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+          />
+        </label>
+        <label className="space-y-1.5 lg:col-span-2">
+          <span className="tech-label">AI welcome message</span>
+          <Textarea
+            value={welcomeMessage}
+            onChange={(e) => setWelcomeMessage(e.target.value)}
+            rows={3}
+            placeholder="Used as the opening message of the AI welcome assistant."
+          />
+        </label>
+        <label className="space-y-1.5 lg:col-span-2">
+          <span className="tech-label">Scripture verse</span>
+          <Input value={verse} onChange={(e) => setVerse(e.target.value)} />
+        </label>
+        <label className="space-y-1.5 lg:col-span-2">
+          <span className="tech-label">Address</span>
+          <Input
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana"
+          />
+        </label>
+        <label className="space-y-1.5 lg:col-span-2">
+          <span className="tech-label">Website URL · temporary domain</span>
+          <Input
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="https://rccgsolutionambassadors.my.canva.site/..."
+          />
+        </label>
+        <label className="space-y-1.5">
+          <span className="tech-label">Phone numbers · one per line</span>
+          <Textarea
+            value={phones}
+            onChange={(e) => setPhones(e.target.value)}
+            rows={3}
+            placeholder={"+233 23 822 2901\n+233 24 601 0017"}
+          />
+        </label>
+        <label className="space-y-1.5">
+          <span className="tech-label">Email addresses · one per line</span>
+          <Textarea
+            value={emails}
+            onChange={(e) => setEmails(e.target.value)}
+            rows={3}
+            placeholder={"rccgsolutionambassador@gmail.com"}
+          />
+        </label>
+      </div>
+
+      {/* Social links */}
+      <div className="mt-5">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="tech-label">Social media links</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="cursor-pointer gap-1"
+            onClick={() => setSocials((s) => [...s, { platform: "facebook", url: "" }])}
+          >
+            <Plus className="h-3 w-3" /> Add link
+          </Button>
+        </div>
+        <div className="space-y-2">
+          {socials.length === 0 && (
+            <p className="rounded-lg border border-dashed border-white/15 p-4 text-center text-xs text-muted-foreground">
+              No social links yet — add Facebook, YouTube, Instagram, and more.
+            </p>
+          )}
+          {socials.map((row, i) => (
+            <div key={i} className="flex flex-col gap-2 sm:flex-row">
+              <Select
+                value={row.platform}
+                onValueChange={(platform) =>
+                  setSocials((s) =>
+                    s.map((r, j) => (j === i ? { ...r, platform } : r)),
+                  )
+                }
+              >
+                <SelectTrigger className="w-full sm:w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOCIAL_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                value={row.url}
+                onChange={(e) =>
+                  setSocials((s) =>
+                    s.map((r, j) => (j === i ? { ...r, url: e.target.value } : r)),
+                  )
+                }
+                placeholder="https://facebook.com/rccgsolutionambassador"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive"
+                onClick={() => setSocials((s) => s.filter((_, j) => j !== i))}
+                title="Remove link"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
+        <Button
+          size="sm"
+          className="cursor-pointer gap-1.5"
+          onClick={handleSaveInfo}
+          disabled={savingInfo || !info}
+        >
+          {savingInfo ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Save className="h-3.5 w-3.5" />
+          )}
+          Save profile
+        </Button>
+        {dirty && (
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+            Unsaved changes
+          </span>
+        )}
+        {!info && (
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+            Loading profile…
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export default function Church() {
+  const info = useQuery(api.church.getInfo);
+  const allPrograms = useQuery(api.church.listAllPrograms);
+  const createProgram = useMutation(api.church.createProgram);
+  const updateProgram = useMutation(api.church.updateProgram);
+  const deleteProgram = useMutation(api.church.deleteProgram);
+
+  // ── Program editor state ──────────────────────────────────────────────
+  const [editing, setEditing] = useState<{ id: Id<"programs"> | null; form: ProgramForm } | null>(
+    null,
+  );
+  const [deletingId, setDeletingId] = useState<Id<"programs"> | null>(null);
+  const [savingProgram, setSavingProgram] = useState(false);
+
+  const grouped = useMemo(() => {
+    const map: Record<Category, NonNullable<typeof allPrograms>> = {
+      daily: [],
+      weekly: [],
+      monthly: [],
+      provincial: [],
+    };
+    for (const p of allPrograms ?? []) {
+      map[p.category as Category]?.push(p);
+    }
+    for (const cat of CATEGORY_ORDER) {
+      map[cat] = [...(map[cat] ?? [])].sort(
+        (a, b) => a.order - b.order || a._creationTime - b._creationTime,
+      );
+    }
+    return map;
+  }, [allPrograms]);
 
   const openNewProgram = (category: Category) => {
     const maxOrder = (grouped[category] ?? []).reduce(
@@ -250,20 +439,6 @@ export default function Church() {
     }
   };
 
-  const dirty =
-    !!info &&
-    (info.name !== (name.trim() || "RCCG Solution Ambassador") ||
-      info.tagline !== (tagline.trim() || "A Parish of the Redeemed Christian Church of God") ||
-      info.description !== description.trim() ||
-      info.welcomeMessage !== welcomeMessage.trim() ||
-      info.verse !== verse.trim() ||
-      info.address !== address.trim() ||
-      (info.website ?? "") !== website.trim() ||
-      info.phones.join("\n") !== phones ||
-      info.emails.join("\n") !== emails ||
-      JSON.stringify(info.socials) !==
-        JSON.stringify(socials.filter((s) => s.url.trim())));
-
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -271,11 +446,7 @@ export default function Church() {
         title="Church website"
         description="Edit the church profile, contact details, social links, and the daily, weekly, monthly, and provincial programs shown on the public website."
         actions={
-          <Button
-            asChild
-            variant="outline"
-            className="cursor-pointer gap-1.5"
-          >
+          <Button asChild variant="outline" className="cursor-pointer gap-1.5">
             <a href="/" target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-3.5 w-3.5" /> View website
             </a>
@@ -284,177 +455,7 @@ export default function Church() {
       />
 
       {/* ── Church profile ─────────────────────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-card p-5">
-        <div className="mb-5 flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <ChurchIcon className="h-4.5 w-4.5" />
-          </span>
-          <div>
-            <p className="text-sm font-bold tracking-tight">Church profile</p>
-            <p className="text-[11px] text-muted-foreground">
-              Shown in the hero, about, and welcome chat on the homepage.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <label className="space-y-1.5">
-            <span className="tech-label">Church name</span>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label className="space-y-1.5">
-            <span className="tech-label">Tagline</span>
-            <Input value={tagline} onChange={(e) => setTagline(e.target.value)} />
-          </label>
-          <label className="space-y-1.5 lg:col-span-2">
-            <span className="tech-label">Short description</span>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-          </label>
-          <label className="space-y-1.5 lg:col-span-2">
-            <span className="tech-label">AI welcome message</span>
-            <Textarea
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-              rows={3}
-              placeholder="Used as the opening message of the AI welcome assistant."
-            />
-          </label>
-          <label className="space-y-1.5 lg:col-span-2">
-            <span className="tech-label">Scripture verse</span>
-            <Input value={verse} onChange={(e) => setVerse(e.target.value)} />
-          </label>
-          <label className="space-y-1.5 lg:col-span-2">
-            <span className="tech-label">Address</span>
-            <Input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana"
-            />
-          </label>
-          <label className="space-y-1.5 lg:col-span-2">
-            <span className="tech-label">Website URL · temporary domain</span>
-            <Input
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              placeholder="https://rccgsolutionambassadors.my.canva.site/..."
-            />
-          </label>
-          <label className="space-y-1.5">
-            <span className="tech-label">Phone numbers · one per line</span>
-            <Textarea
-              value={phones}
-              onChange={(e) => setPhones(e.target.value)}
-              rows={3}
-              placeholder={"+234 801 234 5678\n+234 901 234 5678"}
-            />
-          </label>
-          <label className="space-y-1.5">
-            <span className="tech-label">Email addresses · one per line</span>
-            <Textarea
-              value={emails}
-              onChange={(e) => setEmails(e.target.value)}
-              rows={3}
-              placeholder={"rccgsolutionambassador@gmail.com"}
-            />
-          </label>
-        </div>
-
-        {/* Social links */}
-        <div className="mt-5">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="tech-label">Social media links</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="cursor-pointer gap-1"
-              onClick={() => setSocials((s) => [...s, { platform: "facebook", url: "" }])}
-            >
-              <Plus className="h-3 w-3" /> Add link
-            </Button>
-          </div>
-          <div className="space-y-2">
-            {socials.length === 0 && (
-              <p className="rounded-lg border border-dashed border-white/15 p-4 text-center text-xs text-muted-foreground">
-                No social links yet — add Facebook, YouTube, Instagram, and more.
-              </p>
-            )}
-            {socials.map((row, i) => (
-              <div key={i} className="flex flex-col gap-2 sm:flex-row">
-                <Select
-                  value={row.platform}
-                  onValueChange={(platform) =>
-                    setSocials((s) =>
-                      s.map((r, j) => (j === i ? { ...r, platform } : r)),
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-full sm:w-44">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SOCIAL_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={row.url}
-                  onChange={(e) =>
-                    setSocials((s) =>
-                      s.map((r, j) => (j === i ? { ...r, url: e.target.value } : r)),
-                    )
-                  }
-                  placeholder="https://facebook.com/rccgsolutionambassador"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive"
-                  onClick={() => setSocials((s) => s.filter((_, j) => j !== i))}
-                  title="Remove link"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
-          <Button
-            size="sm"
-            className="cursor-pointer gap-1.5"
-            onClick={handleSaveInfo}
-            disabled={savingInfo || !info}
-          >
-            {savingInfo ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Save className="h-3.5 w-3.5" />
-            )}
-            Save profile
-          </Button>
-          {dirty && (
-            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
-              Unsaved changes
-            </span>
-          )}
-          {!info && (
-            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-              Loading profile…
-            </span>
-          )}
-        </div>
-      </section>
+      <ProfileEditor key={info?._id ?? "unseeded"} info={info} />
 
       {/* ── Programs ───────────────────────────────────────────────────── */}
       <section className="flex flex-col gap-5">
@@ -609,7 +610,7 @@ export default function Church() {
                   onChange={(e) =>
                     setEditing({ ...editing, form: { ...editing.form, title: e.target.value } })
                   }
-                  placeholder="Sunday Worship Service"
+                  placeholder="Sunday Service"
                 />
               </label>
               <label className="space-y-1.5">
@@ -653,7 +654,7 @@ export default function Church() {
                     onChange={(e) =>
                       setEditing({ ...editing, form: { ...editing.form, day: e.target.value } })
                     }
-                    placeholder="Sundays"
+                    placeholder="Every Sunday"
                   />
                 </label>
                 <label className="space-y-1.5">
@@ -663,7 +664,7 @@ export default function Church() {
                     onChange={(e) =>
                       setEditing({ ...editing, form: { ...editing.form, time: e.target.value } })
                     }
-                    placeholder="8:30 AM – 12:00 PM"
+                    placeholder="8:00 AM – 11:00 AM"
                   />
                 </label>
                 <label className="space-y-1.5">
@@ -673,7 +674,7 @@ export default function Church() {
                     onChange={(e) =>
                       setEditing({ ...editing, form: { ...editing.form, venue: e.target.value } })
                     }
-                    placeholder="Main Auditorium"
+                    placeholder="Dobro"
                   />
                 </label>
                 <label className="space-y-1.5">

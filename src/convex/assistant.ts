@@ -221,7 +221,7 @@ Guidelines:
     try {
       const reply = await geminiChat(systemPrompt, history, key);
       return { reply };
-    } catch (err) {
+    } catch {
       // AI hiccup → fall back to the data-driven answer so visitors are never stuck.
       return { reply: buildFallback(last.content, info, programs) };
     }
