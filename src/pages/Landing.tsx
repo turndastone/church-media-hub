@@ -1,111 +1,153 @@
+import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Wordmark } from "@/components/wordmark";
-import { CoverArt } from "@/components/cover-art";
-import { formatUSD } from "@/lib/format";
-import { PRO_PRICE_NGN, PRO_PRICE_USD, TRIAL_DAYS } from "@/convex/pricing";
+import { LogoMark, Wordmark } from "@/components/wordmark";
+import { ChurchChat } from "@/components/ChurchChat";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
-  BookOpenText,
-  Check,
-  Database,
-  Download,
-  Heart,
-  Library,
-  ListOrdered,
-  Mic,
-  MonitorPlay,
-  Radio,
-  ScanText,
+  CalendarDays,
+  Church,
+  Clock,
+  Facebook,
+  Gem,
+  Globe,
+  HeartHandshake,
+  Instagram,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Moon,
+  Music2,
+  Navigation,
+  Phone,
   Sparkles,
-  UploadCloud,
-  Wand2,
-  Zap,
+  Sunrise,
+  Twitter,
+  Users,
+  Youtube,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-const DEMO_ITEMS = [
-  { title: "Way Maker", type: "song", artist: "Sinach", accent: "violet", downloads: 148, likes: 36 },
-  { title: "John 3:16", type: "scripture", reference: "John 3:16", accent: "rose", downloads: 210, likes: 58 },
-  { title: "Sunrise Motion Loop", type: "background", accent: "amber", downloads: 203, likes: 41 },
-  { title: "Sermon Title Card", type: "template", accent: "indigo", downloads: 88, likes: 22 },
-] as const;
+type Category = "daily" | "weekly" | "monthly" | "provincial";
 
-const FEATURES = [
+const CATEGORY_META: Record<
+  Category,
+  { label: string; icon: LucideIcon; blurb: string }
+> = {
+  daily: { label: "Daily", icon: Sunrise, blurb: "Every-day encounters with God" },
+  weekly: { label: "Weekly", icon: CalendarDays, blurb: "The rhythm of parish life" },
+  monthly: { label: "Monthly", icon: Moon, blurb: "Special gatherings & thanksgiving" },
+  provincial: { label: "Provincial", icon: Globe, blurb: "Across the province, together" },
+};
+
+const SOCIAL_ICONS: Record<string, { icon: LucideIcon; label: string }> = {
+  facebook: { icon: Facebook, label: "Facebook" },
+  youtube: { icon: Youtube, label: "YouTube" },
+  instagram: { icon: Instagram, label: "Instagram" },
+  x: { icon: Twitter, label: "X (Twitter)" },
+  tiktok: { icon: Music2, label: "TikTok" },
+  whatsapp: { icon: MessageCircle, label: "WhatsApp" },
+};
+
+const PILLARS = [
   {
-    icon: MonitorPlay,
-    title: "One console for the whole booth",
-    body: "Drive your broadcast engine, presentation software, and verse display from a single operator screen over your local network — no alt-tabbing between windows.",
+    icon: HeartHandshake,
+    title: "Fervent Prayer",
+    body: "We stand in the gap through daily intercession, vigils, and monthly fasting — believing God for answers.",
   },
   {
-    icon: ScanText,
-    title: "Sermon verse detection",
-    body: "Paste a transcript and every Bible reference is detected instantly, with KJV text ready to project in a single click.",
+    icon: BookOpen,
+    title: "Sound Teaching",
+    body: "The undiluted Word of God through Bible study, Sunday School, and Digging Deep sessions.",
   },
   {
-    icon: Library,
-    title: "Shared content catalog",
-    body: "Songs, scripture, backgrounds, and templates — browse, search, and download what your team has already built.",
-  },
-  {
-    icon: UploadCloud,
-    title: "Upload your own media",
-    body: "Publish your team's content to the library with cover art and tags, then wire it into any service.",
-  },
-  {
-    icon: ListOrdered,
-    title: "Run-of-show services",
-    body: "Plan the order of worship item by item, then step through it live while pushing each slide to your apps.",
-  },
-  {
-    icon: Sparkles,
-    title: "Billing that just works",
-    body: "30 days of full Pro free, then $8.76/month through Stripe or Paystack. Cancel anytime, no phone calls.",
+    icon: Gem,
+    title: "Practical Solutions",
+    body: "We equip every member to carry godly, practical solutions into their homes, workplaces, and nation.",
   },
 ];
 
-const PIPELINE = [
-  { step: "01", label: "Capture", icon: Mic, body: "Sermon audio and transcripts come in from the sound booth." },
-  { step: "02", label: "Detect", icon: ScanText, body: "Verses are recognized and matched to the library automatically." },
-  { step: "03", label: "Drive", icon: Zap, body: "The operator steps the run-of-show and pushes slides to every app." },
-  { step: "04", label: "Stream", icon: Radio, body: "Your broadcast engine carries the full stream — scenes, lower-thirds, and NDI layers." },
-] as const;
+const DEFAULT_NAME = "RCCG Solution Ambassador";
+const DEFAULT_TAGLINE = "A Parish of the Redeemed Christian Church of God";
+const DEFAULT_VERSE =
+  "Call unto me, and I will answer thee, and shew thee great and mighty things, which thou knowest not. — Jeremiah 33:3";
 
-function fadeUp(delay: number) {
+function fadeUp(delay = 0) {
   return {
     initial: { opacity: 0, y: 18 },
     whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, margin: "-80px" },
+    viewport: { once: true, margin: "-60px" },
     transition: { duration: 0.55, delay, ease: [0.21, 0.47, 0.32, 0.98] as const },
   };
 }
 
 export default function Landing() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const ctaHref = isAuthenticated ? "/dashboard" : "/auth";
-  const ctaLabel = isLoading
-    ? "Loading…"
-    : isAuthenticated
-      ? "Open console"
-      : "Start your 30-day free trial";
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const info = useQuery(api.church.getInfo);
+  const programs = useQuery(api.church.listPrograms);
+  const ensureSeed = useMutation(api.church.ensureSeed);
+  const [activeTab, setActiveTab] = useState<Category>("weekly");
+
+  useEffect(() => {
+    ensureSeed().catch(() => undefined);
+  }, [ensureSeed]);
+
+  const name = info?.name ?? DEFAULT_NAME;
+  const tagline = info?.tagline ?? DEFAULT_TAGLINE;
+  const description =
+    info?.description ??
+    "RCCG Solution Ambassador is a vibrant, Christ-centred parish of the Redeemed Christian Church of God, raising kingdom ambassadors who carry practical, godly solutions to their homes, workplaces, schools, and communities.";
+  const verse = info?.verse ?? DEFAULT_VERSE;
+  const address = info?.address ?? "12 Solution Way, Off Redemption Avenue, Lagos, Nigeria";
+  const phones = info?.phones ?? [];
+  const emails = info?.emails ?? [];
+  const socials = info?.socials ?? [];
+  const allPrograms = programs ?? [];
+
+  const grouped = (cat: Category) =>
+    allPrograms
+      .filter((p) => p.category === cat)
+      .sort((a, b) => a.order - b.order);
+  const counts = (Object.keys(CATEGORY_META) as Category[]).map((cat) => ({
+    cat,
+    count: grouped(cat).length,
+  }));
+
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const sundayService = allPrograms.find(
+    (p) => p.category === "weekly" && p.title.toLowerCase().includes("sunday worship"),
+  );
+
+  const navLinks: [string, string][] = [
+    ["About", "#about"],
+    ["Programs", "#programs"],
+    ["Visit us", "#visit"],
+    ["Contact", "#contact"],
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Nav */}
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur">
+      {/* ── Nav ─────────────────────────────────────────────────────────── */}
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-background/85 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="cursor-pointer">
-            <Wordmark compact />
-          </Link>
+          <a href="#top" className="flex cursor-pointer items-center gap-2.5">
+            <LogoMark className="h-9 w-9" />
+            <div className="leading-none">
+              <p className="text-[15px] font-bold tracking-tight">
+                Solution<span className="text-primary"> Ambassador</span>
+              </p>
+              <p className="mt-1 hidden font-mono text-[8px] uppercase tracking-[0.24em] text-muted-foreground sm:block">
+                RCCG Parish
+              </p>
+            </div>
+          </a>
           <nav className="hidden items-center gap-1 md:flex">
-            {[
-              ["Features", "#features"],
-              ["Pipeline", "#pipeline"],
-              ["Catalog", "#catalog"],
-              ["Pricing", "#pricing"],
-            ].map(([label, href]) => (
+            {navLinks.map(([label, href]) => (
               <a
                 key={href}
                 href={href}
@@ -121,374 +163,549 @@ export default function Landing() {
               variant="ghost"
               className="hidden cursor-pointer sm:inline-flex"
             >
-              <Link to="/auth">Sign in</Link>
+              <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+                {authLoading ? "Loading…" : isAuthenticated ? "Admin dashboard" : "Sign in"}
+              </Link>
             </Button>
             <Button asChild className="cursor-pointer gap-1.5">
-              <Link to={ctaHref}>
-                {ctaLabel} <ArrowRight className="h-4 w-4" />
-              </Link>
+              <a href="#programs">
+                Join us <ArrowRight className="h-4 w-4" />
+              </a>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="glow-violet relative overflow-hidden pt-32 pb-20 sm:pt-40">
+      {/* ── Hero ────────────────────────────────────────────────────────── */}
+      <section id="top" className="glow-blue relative overflow-hidden pt-32 pb-20 sm:pt-40">
+        {/* decorative light rays */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[52rem] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl"
+        />
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <motion.div {...fadeUp(0)}>
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-primary">
-                <Zap className="h-3 w-3" /> For church media teams
+          <motion.div {...fadeUp(0)} className="mx-auto max-w-3xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3.5 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
+              <Church className="h-3.5 w-3.5" /> {tagline}
+            </span>
+            <h1 className="mt-6 font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
+              Welcome to{" "}
+              <span className="bg-gradient-to-r from-primary via-sky-300 to-accent bg-clip-text text-transparent">
+                {name}
               </span>
-              <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-                Run the whole{" "}
-                <span className="bg-gradient-to-r from-primary via-fuchsia-400 to-accent bg-clip-text text-transparent">
-                  service
-                </span>{" "}
-                from one console.
-              </h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-                One operator screen for your whole media stack — projection
-                software, verse displays, and the broadcast engine — projecting
-                lyrics and scripture, transcribing sermon verses, and
-                controlling the live stream.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Button asChild size="lg" className="cursor-pointer gap-2">
-                  <Link to={ctaHref}>
-                    {ctaLabel} <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="cursor-pointer">
-                  <a href="#pricing">See pricing</a>
-                </Button>
-              </div>
-              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-emerald-400" /> {TRIAL_DAYS}-day free trial
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-emerald-400" /> {formatUSD(PRO_PRICE_USD)}/mo after
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-emerald-400" /> No credit card to start
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Terminal mockup */}
-            <motion.div {...fadeUp(0.15)}>
-              <div className="rounded-2xl border border-border bg-card/80 p-2 backdrop-blur">
-                <div className="flex items-center gap-1.5 px-3 py-2.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-400/70" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
-                  <span className="ml-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                    booth://control-room · Alpha Worship One
-                  </span>
-                </div>
-                <div className="rounded-xl border border-border bg-background p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="tech-label">Broadcast transport</p>
-                    <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                      live
-                    </span>
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {["Countdown", "Worship", "Sermon", "Lower third", "Offering", "Stream"].map(
-                      (s, i) => (
-                        <div
-                          key={s}
-                          className={cn(
-                            "rounded-lg border px-3 py-2.5 text-[11px] font-medium",
-                            i === 2
-                              ? "border-primary/60 bg-primary/15 text-primary"
-                              : "border-border bg-secondary text-muted-foreground",
-                          )}
-                        >
-                          {s}
-                          {i === 2 && (
-                            <span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.2em] text-primary/80">
-                              On air
-                            </span>
-                          )}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                  <div className="mt-3 space-y-1.5 font-mono text-[10px] leading-4">
-                    <p className="text-muted-foreground">
-                      <span className="text-primary">$</span> verses --detect
-                      "transcript.txt"
-                    </p>
-                    <p className="text-emerald-400/90">
-                      ✓ John 3:16 · Philippians 4:13 · Isaiah 40:31
-                    </p>
-                    <p className="text-muted-foreground">
-                      <span className="text-primary">$</span> stream --start --scene
-                      "Sermon"
-                    </p>
-                    <p className="text-accent">▶ broadcasting to YouTube · 1080p60</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="border-t border-border/60 py-20">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <motion.div {...fadeUp(0)} className="max-w-2xl">
-            <p className="tech-label">Capabilities</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              Built for the booth,{" "}
-              <span className="text-primary">not against it</span>.
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Everything a media operator touches during a service — projection,
-              transcription, and broadcast — orchestrated with the precision of a
-              developer tool.
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
+              We are raising kingdom ambassadors who carry practical, godly
+              solutions to their homes, workplaces, schools, and communities —
+              through fervent prayer, sound teaching, and purposeful worship.
             </p>
-          </motion.div>
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f, i) => (
-              <motion.div
-                key={f.title}
-                {...fadeUp(0.05 * i)}
-                className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-secondary">
-                  <f.icon className="h-4 w-4 text-primary transition-transform group-hover:scale-110" />
-                </div>
-                <h3 className="mt-4 text-sm font-bold tracking-tight text-foreground">
-                  {f.title}
-                </h3>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">{f.body}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pipeline */}
-      <section id="pipeline" className="border-t border-border/60 py-20">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <motion.div {...fadeUp(0)} className="max-w-2xl">
-            <p className="tech-label">How it works</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              From pulpit to pixels.
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              A four-stage pipeline that keeps the message moving from the
-              speaker's voice to the screens and the stream.
+            <p className="mx-auto mt-6 max-w-xl font-display text-lg italic leading-8 text-accent/90">
+              “{verse.replace(/ — .*$/, "")}”
             </p>
-          </motion.div>
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {PIPELINE.map((p, i) => (
-              <motion.div
-                key={p.step}
-                {...fadeUp(0.06 * i)}
-                className="relative rounded-xl border border-border bg-card p-5"
-              >
-                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
-                  {p.step}
-                </span>
-                <p.icon className="mt-4 h-5 w-5 text-muted-foreground" />
-                <h3 className="mt-2 text-sm font-bold tracking-tight text-foreground">
-                  {p.label}
-                </h3>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">{p.body}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Catalog preview */}
-      <section id="catalog" className="border-t border-border/60 py-20">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <motion.div {...fadeUp(0)} className="flex flex-wrap items-end justify-between gap-4">
-            <div className="max-w-2xl">
-              <p className="tech-label">Content library</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                A catalog your team actually uses.
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                Songs, scripture, backgrounds, and templates — seeded with
-                starter content the moment you sign in.
-              </p>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              {verse.split("—")[1]?.trim()}
+            </p>
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <Button asChild size="lg" className="cursor-pointer gap-2">
+                <a href="#programs">
+                  Explore our programs <ArrowRight className="h-4 w-4" />
+                </a>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="cursor-pointer gap-2">
+                <a href="#visit">
+                  <MapPin className="h-4 w-4" /> Plan your visit
+                </a>
+              </Button>
             </div>
-            <Button asChild variant="outline" className="cursor-pointer gap-1.5">
-              <Link to={isAuthenticated ? "/dashboard/catalog" : "/auth"}>
-                Browse the catalog <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+              {counts.map(({ cat, count }) => {
+                const meta = CATEGORY_META[cat];
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setActiveTab(cat);
+                      document
+                        .getElementById("programs")
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="group flex cursor-pointer items-center gap-2 text-left"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 transition-colors group-hover:border-primary/50 group-hover:bg-primary/10">
+                      <meta.icon className="h-3.5 w-3.5 text-primary" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold leading-4">
+                        {count} {meta.label}
+                      </span>
+                      <span className="block font-mono text-[8px] uppercase tracking-[0.18em] text-muted-foreground">
+                        programs
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </motion.div>
-          <div className="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {DEMO_ITEMS.map((item, i) => (
-              <motion.div
-                key={item.title}
-                {...fadeUp(0.05 * i)}
-                className="cursor-pointer overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary/40"
-              >
-                <CoverArt
-                  item={{
-                    title: item.title,
-                    coverUrl: undefined,
-                    coverStorageId: undefined,
-                    accent: item.accent,
-                    type: item.type,
-                  }}
-                  className="aspect-[4/3] w-full"
-                />
-                <div className="p-3">
-                  <p className="truncate text-sm font-semibold tracking-tight text-foreground">
-                    {item.title}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {"artist" in item && item.artist
-                      ? item.artist
-                      : "reference" in item && item.reference
-                        ? item.reference
-                        : "Template"}
-                  </p>
-                  <div className="mt-2 flex items-center gap-3 font-mono text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Download className="h-3 w-3" /> {item.downloads}
+        </div>
+      </section>
+
+      {/* ── About ───────────────────────────────────────────────────────── */}
+      <section id="about" className="border-t border-white/10 py-20">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <div className="grid items-start gap-12 lg:grid-cols-2">
+            <motion.div {...fadeUp(0)}>
+              <p className="tech-label">Who we are</p>
+              <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                A church with{" "}
+                <span className="text-primary">solutions for every season</span>.
+              </h2>
+              <p className="mt-5 text-[15px] leading-7 text-muted-foreground">
+                {description}
+              </p>
+              <p className="mt-4 text-[15px] leading-7 text-muted-foreground">
+                Whether you are joining us for the first time or you have walked
+                with us for years, you are family here. Come as you are —
+                we would love to meet you.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-2">
+                {["Sunday Worship", "Bible Study", "Prayer & Deliverance", "Youth Fellowship"].map(
+                  (tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary"
+                    >
+                      {tag}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Heart className="h-3 w-3" /> {item.likes}
-                    </span>
+                  ),
+                )}
+              </div>
+            </motion.div>
+            <div className="grid gap-3 sm:grid-cols-1">
+              {PILLARS.map((p, i) => (
+                <motion.div
+                  key={p.title}
+                  {...fadeUp(0.08 * i)}
+                  className="group flex gap-4 rounded-xl border border-white/10 bg-card p-5 transition-colors hover:border-primary/40"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary">
+                    <p.icon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold tracking-tight">{p.title}</h3>
+                    <p className="mt-1.5 text-[13px] leading-6 text-muted-foreground">
+                      {p.body}
+                    </p>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="border-t border-border/60 py-20">
+      {/* ── Programs ────────────────────────────────────────────────────── */}
+      <section id="programs" className="border-t border-white/10 py-20">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <motion.div {...fadeUp(0)} className="mx-auto max-w-2xl text-center">
-            <p className="tech-label">Pricing</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              One plan. A month to decide.
+            <p className="tech-label">Programs & services</p>
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              Daily, weekly, monthly & provincial.
             </h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Every new workspace gets {TRIAL_DAYS} days of full Pro — no credit
-              card required. After the trial, Pro is{" "}
-              {formatUSD(PRO_PRICE_USD)}/month, or{" "}
-              {new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(PRO_PRICE_NGN)}
-              /month via Paystack.
+            <p className="mt-4 text-[15px] leading-7 text-muted-foreground">
+              There is always something happening at {name}. Find a service that
+              fits your season, and come with an expectant heart.
             </p>
           </motion.div>
-          <div className="mx-auto mt-10 grid max-w-4xl gap-4 lg:grid-cols-2">
+
+          {/* Tabs */}
+          <div className="mt-10 flex flex-wrap justify-center gap-2">
+            {(Object.keys(CATEGORY_META) as Category[]).map((cat) => {
+              const meta = CATEGORY_META[cat];
+              const isActive = activeTab === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveTab(cat)}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors",
+                    isActive
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-white/10 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                  )}
+                >
+                  <meta.icon className="h-4 w-4" />
+                  {meta.label}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-px font-mono text-[9px]",
+                      isActive ? "bg-white/20 text-white" : "bg-white/5 text-muted-foreground",
+                    )}
+                  >
+                    {grouped(cat).length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active category blurb */}
+          <p className="mt-6 text-center font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            {CATEGORY_META[activeTab].blurb}
+          </p>
+
+          {/* Cards */}
+          {!programs ? (
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-44 animate-pulse rounded-xl border border-white/10 bg-card"
+                />
+              ))}
+            </div>
+          ) : grouped(activeTab).length === 0 ? (
+            <div className="mx-auto mt-8 max-w-md rounded-xl border border-dashed border-white/15 bg-card/50 p-10 text-center text-sm text-muted-foreground">
+              No {CATEGORY_META[activeTab].label.toLowerCase()} programs listed
+              right now — check back soon!
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {grouped(activeTab).map((p, i) => (
+                <motion.div
+                  key={p._id}
+                  {...fadeUp(0.05 * i)}
+                  className="group relative flex flex-col rounded-xl border border-white/10 bg-card p-5 transition-colors hover:border-primary/40"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                      {(() => {
+                        const Icon = CATEGORY_META[activeTab].icon;
+                        return <Icon className="h-4 w-4" />;
+                      })()}
+                    </span>
+                    <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+                      {p.day}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 text-[15px] font-bold tracking-tight">
+                    {p.title}
+                  </h3>
+                  <p className="mt-1.5 flex-1 text-[13px] leading-6 text-muted-foreground">
+                    {p.description}
+                  </p>
+                  <div className="mt-4 space-y-1.5 border-t border-white/10 pt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    <p className="flex items-center gap-2">
+                      <Clock className="h-3 w-3 text-primary" /> {p.time}
+                    </p>
+                    {p.venue && (
+                      <p className="flex items-center gap-2">
+                        <MapPin className="h-3 w-3 text-primary" /> {p.venue}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Visit / Location ────────────────────────────────────────────── */}
+      <section id="visit" className="border-t border-white/10 py-20">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <div className="grid items-stretch gap-6 lg:grid-cols-2">
+            <motion.div
+              {...fadeUp(0)}
+              className="glow-blue flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card p-8"
+            >
+              <div>
+                <p className="tech-label">Find us</p>
+                <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                  We would love to host you.
+                </h2>
+                <p className="mt-4 text-[15px] leading-7 text-muted-foreground">
+                  {name} is located at{" "}
+                  <span className="font-semibold text-foreground">{address}</span>.
+                  We are easy to find and always ready with a warm welcome.
+                </p>
+                <div className="mt-6 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-primary">
+                      <MapPin className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold">{address}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Main auditorium · ample parking · all welcome
+                      </p>
+                    </div>
+                  </div>
+                  {sundayService && (
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-primary">
+                        <CalendarDays className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold">
+                          Sunday Worship Service
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {sundayService.day}, {sundayService.time}
+                          {sundayService.venue ? ` · ${sundayService.venue}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button asChild className="cursor-pointer gap-2">
+                  <a href={mapsHref} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="h-4 w-4" /> Get directions
+                  </a>
+                </Button>
+                <Button asChild variant="outline" className="cursor-pointer gap-2">
+                  <a href="#contact">
+                    <Phone className="h-4 w-4" /> Contact us
+                  </a>
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* Social strip */}
+            <motion.div
+              {...fadeUp(0.1)}
+              className="flex flex-col justify-between rounded-2xl border border-white/10 bg-card p-8"
+            >
+              <div>
+                <p className="tech-label">Stay connected</p>
+                <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                  Follow us everywhere.
+                </h2>
+                <p className="mt-4 text-[15px] leading-7 text-muted-foreground">
+                  Catch every service, testimony, and announcement on our social
+                  channels. Stream with us on Facebook and YouTube, and follow
+                  the parish across all platforms.
+                </p>
+              </div>
+              <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {socials.length === 0 ? (
+                  <p className="col-span-full rounded-lg border border-dashed border-white/15 p-5 text-center text-xs text-muted-foreground">
+                    Social links coming soon.
+                  </p>
+                ) : (
+                  socials.map((s) => {
+                    const meta = SOCIAL_ICONS[s.platform] ?? {
+                      icon: Globe,
+                      label: s.platform,
+                    };
+                    return (
+                      <a
+                        key={`${s.platform}-${s.url}`}
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-white/10 bg-secondary/40 p-4 text-center transition-colors hover:border-primary/50"
+                      >
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary transition-transform group-hover:scale-110">
+                          <meta.icon className="h-4.5 w-4.5" />
+                        </span>
+                        <span className="text-xs font-semibold">{meta.label}</span>
+                      </a>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Contact ─────────────────────────────────────────────────────── */}
+      <section id="contact" className="border-t border-white/10 py-20">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <motion.div {...fadeUp(0)} className="mx-auto max-w-2xl text-center">
+            <p className="tech-label">Contact us</p>
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              Reach out — we are here for you.
+            </h2>
+            <p className="mt-4 text-[15px] leading-7 text-muted-foreground">
+              Questions, prayer requests, or partnership? Call, email, or message
+              us — a member of the parish team will get back to you.
+            </p>
+          </motion.div>
+          <div className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2">
             <motion.div
               {...fadeUp(0.05)}
-              className="rounded-xl border border-border bg-card p-6"
+              className="rounded-xl border border-white/10 bg-card p-6"
             >
-              <p className="tech-label">Starter</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight">
-                $0<span className="text-sm font-normal text-muted-foreground"> /mo</span>
-              </p>
-              <ul className="mt-5 space-y-2.5">
-                {[
-                  "Personal dashboard & catalog",
-                  "30-day Pro trial on signup",
-                  "Community content access",
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-foreground/85">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /> {f}
-                  </li>
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <Phone className="h-4.5 w-4.5" />
+              </span>
+              <h3 className="mt-4 text-sm font-bold tracking-tight">Phone numbers</h3>
+              <div className="mt-2 space-y-1.5">
+                {(phones.length ? phones : ["+234 800 000 0000"]).map((ph) => (
+                  <a
+                    key={ph}
+                    href={`tel:${ph.replace(/[^+\d]/g, "")}`}
+                    className="block cursor-pointer text-sm text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {ph}
+                  </a>
                 ))}
-              </ul>
-              <Button asChild variant="outline" className="mt-6 w-full cursor-pointer">
-                <Link to="/auth">Get started</Link>
-              </Button>
+              </div>
             </motion.div>
             <motion.div
               {...fadeUp(0.1)}
-              className="relative rounded-xl border border-primary/50 bg-primary/10 p-6"
+              className="rounded-xl border border-white/10 bg-card p-6"
             >
-              <span className="absolute -top-3 left-6 rounded-full border border-primary/60 bg-card px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-primary">
-                Recommended
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <Mail className="h-4.5 w-4.5" />
               </span>
-              <p className="tech-label">Pro</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight">
-                {formatUSD(PRO_PRICE_USD)}
-                <span className="text-sm font-normal text-muted-foreground"> /mo</span>
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                After a {TRIAL_DAYS}-day free trial · Stripe or Paystack
-              </p>
-              <ul className="mt-5 space-y-2.5">
-                {[
-                  "Live broadcast control room",
-                  "Projection + verse display bridges",
-                  "Unlimited services & uploads",
-                  "Verse detection & transcription",
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-foreground/90">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {f}
-                  </li>
+              <h3 className="mt-4 text-sm font-bold tracking-tight">Email us</h3>
+              <div className="mt-2 space-y-1.5">
+                {(emails.length ? emails : ["info@rccgsolutionambassador.org"]).map((em) => (
+                  <a
+                    key={em}
+                    href={`mailto:${em}`}
+                    className="block cursor-pointer text-sm text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {em}
+                  </a>
                 ))}
-              </ul>
-              <Button asChild className="mt-6 w-full cursor-pointer gap-1.5">
-                <Link to={ctaHref}>
-                  Start free trial <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+              </div>
+            </motion.div>
+            <motion.div
+              {...fadeUp(0.15)}
+              className="rounded-xl border border-white/10 bg-card p-6 sm:col-span-2"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <Sparkles className="h-4.5 w-4.5" />
+              </span>
+              <h3 className="mt-4 text-sm font-bold tracking-tight">
+                Talk to our AI welcome assistant
+              </h3>
+              <p className="mt-2 max-w-xl text-[13px] leading-6 text-muted-foreground">
+                Not sure where to start? Tap the chat bubble at the bottom-right
+                of the screen — our AI assistant can share service times,
+                programs, directions, and contact details instantly.
+              </p>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="border-t border-border/60 py-20">
-        <motion.div
-          {...fadeUp(0)}
-          className="glow-violet mx-auto w-full max-w-6xl px-4 sm:px-6"
-        >
-          <div className="rounded-2xl border border-primary/40 bg-card/60 p-10 text-center">
-            <BookOpenText className="mx-auto h-6 w-6 text-primary" />
-            <h2 className="mx-auto mt-4 max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
-              Next Sunday deserves a better console.
+      {/* ── CTA ─────────────────────────────────────────────────────────── */}
+      <section className="border-t border-white/10 py-20">
+        <motion.div {...fadeUp(0)} className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <div className="glow-blue rounded-2xl border border-primary/30 bg-card/60 p-10 text-center">
+            <Church className="mx-auto h-7 w-7 text-accent" />
+            <h2 className="mx-auto mt-4 max-w-2xl font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              “And I will answer thee, and shew thee great and mighty things.”
             </h2>
-            <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-              Set up takes minutes, and the first {TRIAL_DAYS} days are on us.
-              Your media team will thank you.
+            <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
+              {name} · {tagline} · {address}
             </p>
-            <Button asChild size="lg" className="mt-7 cursor-pointer gap-2">
-              <Link to={ctaHref}>
-                {ctaLabel} <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Button asChild size="lg" className="cursor-pointer gap-2">
+                <a href="#programs">
+                  See our programs <ArrowRight className="h-4 w-4" />
+                </a>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="cursor-pointer gap-2">
+                <a href="#visit">
+                  <MapPin className="h-4 w-4" /> Visit us this Sunday
+                </a>
+              </Button>
+            </div>
           </div>
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/60 py-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
-          <Wordmark compact />
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            © {new Date().getFullYear()} Alpha Worship One · Made for media teams
-          </p>
-          <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Database className="h-3 w-3" /> Supabase
-            </span>
-            <span className="flex items-center gap-1">
-              <Wand2 className="h-3 w-3" /> Stripe · Paystack
-            </span>
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/10 bg-card/40 py-12">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-10 md:grid-cols-3">
+            <div>
+              <Wordmark compact />
+              <p className="mt-4 max-w-xs text-[13px] leading-6 text-muted-foreground">
+                A parish of the Redeemed Christian Church of God, raising
+                kingdom ambassadors of solutions across our community and nation.
+              </p>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Quick links
+              </p>
+              <ul className="mt-4 space-y-2 text-[13px]">
+                {navLinks.map(([label, href]) => (
+                  <li key={href}>
+                    <a href={href} className="cursor-pointer text-muted-foreground transition-colors hover:text-primary">
+                      {label}
+                    </a>
+                  </li>
+                ))}
+                <li>
+                  <Link
+                    to={isAuthenticated ? "/dashboard" : "/auth"}
+                    className="cursor-pointer text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    Church admin
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Contact
+              </p>
+              <ul className="mt-4 space-y-2 text-[13px] text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                  {address}
+                </li>
+                {phones.map((ph) => (
+                  <li key={ph} className="flex items-center gap-2">
+                    <Phone className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    {ph}
+                  </li>
+                ))}
+                {emails.map((em) => (
+                  <li key={em} className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    {em}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              © {new Date().getFullYear()} {name} · {tagline}
+            </p>
+            <div className="flex items-center gap-2">
+              {socials.slice(0, 6).map((s) => {
+                const meta = SOCIAL_ICONS[s.platform] ?? { icon: Globe, label: s.platform };
+                return (
+                  <a
+                    key={`${s.platform}-${s.url}`}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={meta.label}
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/5 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+                  >
+                    <meta.icon className="h-3.5 w-3.5" />
+                  </a>
+                );
+              })}
+            </div>
           </div>
         </div>
       </footer>
+
+      <ChurchChat />
     </div>
   );
 }

@@ -9,19 +9,23 @@ export function LogoMark({ className }: { className?: string }) {
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="aw-bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#2a2142" />
-          <stop offset="1" stopColor="#141120" />
+        <linearGradient id="rccg-bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1d3fae" />
+          <stop offset="1" stopColor="#0b1f5e" />
         </linearGradient>
-        <linearGradient id="aw-sig" x1="18" y1="50" x2="46" y2="14" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#c4b5fd" />
-          <stop offset="1" stopColor="#8b5cf6" />
+        <linearGradient id="rccg-cross" x1="32" y1="18" x2="32" y2="46" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#f7e08b" />
+          <stop offset="1" stopColor="#d4a72c" />
         </linearGradient>
       </defs>
-      <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#aw-bg)" stroke="rgba(255,255,255,0.16)" strokeWidth="2" />
-      <path d="M20 46L32 18L44 46" stroke="url(#aw-sig)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M25 37H39" stroke="#fbbf24" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="32" cy="12" r="3" fill="#fbbf24" />
+      <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#rccg-bg)" stroke="rgba(255,255,255,0.16)" strokeWidth="2" />
+      <path
+        d="M32 8V12M32 52V56M8 32H12M52 32H56M14.3 14.3L17.1 17.1M46.9 46.9L49.7 49.7M49.7 14.3L46.9 17.1M17.1 46.9L14.3 49.7"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path d="M24 18H40M32 18V46M27 37H37" stroke="url(#rccg-cross)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -38,12 +42,11 @@ export function Wordmark({
       <LogoMark />
       <div className="leading-none">
         <p className="text-[15px] font-bold tracking-tight text-foreground">
-          Alpha Worship
-          <span className="text-primary"> One</span>
+          Solution<span className="text-primary"> Ambassador</span>
         </p>
         {!compact && (
           <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground">
-            Church Media Console
+            RCCG · Parish of the Redeemed Christian Church of God
           </p>
         )}
       </div>

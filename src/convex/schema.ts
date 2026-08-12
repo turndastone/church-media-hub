@@ -118,10 +118,57 @@ export const streamPlatformValidator = v.union(
 );
 export type StreamPlatform = Infer<typeof streamPlatformValidator>;
 
+// --- Church website --------------------------------------------------------
+
+export const PROGRAM_CATEGORY = {
+  DAILY: "daily",
+  WEEKLY: "weekly",
+  MONTHLY: "monthly",
+  PROVINCIAL: "provincial",
+} as const;
+export const programCategoryValidator = v.union(
+  v.literal(PROGRAM_CATEGORY.DAILY),
+  v.literal(PROGRAM_CATEGORY.WEEKLY),
+  v.literal(PROGRAM_CATEGORY.MONTHLY),
+  v.literal(PROGRAM_CATEGORY.PROVINCIAL),
+);
+export type ProgramCategory = Infer<typeof programCategoryValidator>;
+
+export const churchSocialValidator = v.object({
+  platform: v.string(),
+  url: v.string(),
+});
+
 const schema = defineSchema(
   {
     // default auth tables using convex auth.
     ...authTables, // do not remove or modify
+
+    // Public programs shown on the site: daily, weekly, monthly, provincial.
+    programs: defineTable({
+      title: v.string(),
+      description: v.string(),
+      category: programCategoryValidator,
+      day: v.string(),
+      time: v.string(),
+      venue: v.optional(v.string()),
+      order: v.number(),
+      isActive: v.boolean(),
+    }).index("by_category", ["category"]),
+
+    // Single church profile record powering the site (name, contact, socials…).
+    churchInfo: defineTable({
+      name: v.string(),
+      tagline: v.string(),
+      description: v.string(),
+      welcomeMessage: v.string(),
+      verse: v.string(),
+      address: v.string(),
+      phones: v.array(v.string()),
+      emails: v.array(v.string()),
+      socials: v.array(churchSocialValidator),
+      updatedAt: v.number(),
+    }),
 
     // the users table is the default users table that is brought in by the authTables
     users: defineTable({
