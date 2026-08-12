@@ -26,10 +26,6 @@ import ThemePanel from "./workspace/ThemePanel";
 import PresentationsPanel from "./workspace/PresentationsPanel";
 import MediaPanel from "./workspace/MediaPanel";
 import ProgramPreview from "./workspace/ProgramPreview";
-
-/** Fallback caption feed so the overlay demos even before any sermon is saved. */
-const DEMO_CAPTION_FEED =
-  "Good morning and welcome to our service today. We're so glad you're here with us this morning. Let's turn our hearts to the Lord as we open in prayer. Our scripture reading this morning comes from the gospel of John. For God so loved the world that He gave His only Son. Let every heart prepare Him room as we worship together today.";
 import {
   BookOpenText,
   ChevronLeft,
@@ -58,6 +54,10 @@ import {
   Video,
   X,
 } from "lucide-react";
+
+/** Fallback caption feed so the overlay demos even before any sermon is saved. */
+const DEMO_CAPTION_FEED =
+  "Good morning and welcome to our service today. We're so glad you're here with us this morning. Let's turn our hearts to the Lord as we open in prayer. Our scripture reading this morning comes from the gospel of John. For God so loved the world that He gave His only Son. Let every heart prepare Him room as we worship together today.";
 
 const TABS: { key: TabKey; label: string; icon: typeof BookOpenText }[] = [
   { key: "scripture", label: "Scripture", icon: BookOpenText },
