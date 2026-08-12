@@ -18,18 +18,23 @@ export const DEFAULT_INFO = {
     "Welcome to RCCG Solution Ambassador! We are glad you found us. 🙏 Explore our service times and programs below, or simply ask me anything about the church — our location, weekly programs, contact details, and more. God bless you!",
   verse:
     "Call unto me, and I will answer thee, and shew thee great and mighty things, which thou knowest not. — Jeremiah 33:3",
-  address: "12 Solution Way, Off Redemption Avenue, Lagos, Nigeria",
-  phones: ["+234 801 234 5678", "+234 901 234 5678"],
-  emails: ["info@rccgsolutionambassador.org"],
+  address: "Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana",
+  phones: ["+233 23 822 2901", "+233 24 601 0017"],
+  emails: ["info@rccgambghana.org"],
   socials: [
-    { platform: "facebook", url: "https://facebook.com/rccgsolutionambassador" },
-    { platform: "youtube", url: "https://youtube.com/@rccgsolutionambassador" },
+    { platform: "facebook", url: "https://www.facebook.com/61560761229546" },
+    { platform: "youtube", url: "https://youtu.be/6UrnmOc3kSQ" },
     { platform: "instagram", url: "https://instagram.com/rccgsolutionambassador" },
     { platform: "x", url: "https://x.com/rccg_solution" },
     { platform: "tiktok", url: "https://tiktok.com/@rccgsolutionambassador" },
-    { platform: "whatsapp", url: "https://wa.me/2348012345678" },
+    { platform: "whatsapp", url: "https://wa.me/233238222901" },
   ],
 };
+
+// Placeholder contact details shipped before the real ones were known.
+const OLD_PLACEHOLDER_ADDRESS =
+  "12 Solution Way, Off Redemption Avenue, Lagos, Nigeria";
+const OLD_PLACEHOLDER_PHONE = "+234 801 234 5678";
 
 // Official RCCG Solution Ambassadors service schedule.
 const SEED_PROGRAMS = [
@@ -195,6 +200,18 @@ export const ensureSeed = mutation({
     const existingInfo = await ctx.db.query("churchInfo").first();
     if (!existingInfo) {
       await ctx.db.insert("churchInfo", { ...DEFAULT_INFO, updatedAt: Date.now() });
+    } else if (
+      existingInfo.address === OLD_PLACEHOLDER_ADDRESS ||
+      existingInfo.phones.includes(OLD_PLACEHOLDER_PHONE)
+    ) {
+      // One-time migration: replace placeholder contact details with the real ones.
+      await ctx.db.patch(existingInfo._id, {
+        address: DEFAULT_INFO.address,
+        phones: DEFAULT_INFO.phones,
+        emails: DEFAULT_INFO.emails,
+        socials: DEFAULT_INFO.socials,
+        updatedAt: Date.now(),
+      });
     }
     const programs = await ctx.db.query("programs").collect();
 

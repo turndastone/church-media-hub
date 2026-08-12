@@ -109,7 +109,8 @@ export default function Landing() {
     info?.description ??
     "RCCG Solution Ambassador is a vibrant, Christ-centred parish of the Redeemed Christian Church of God, raising kingdom ambassadors who carry practical, godly solutions to their homes, workplaces, schools, and communities.";
   const verse = info?.verse ?? DEFAULT_VERSE;
-  const address = info?.address ?? "12 Solution Way, Off Redemption Avenue, Lagos, Nigeria";
+  const address =
+    info?.address ?? "Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana";
   const phones = info?.phones ?? [];
   const emails = info?.emails ?? [];
   const socials = info?.socials ?? [];
@@ -679,7 +680,7 @@ export default function Landing() {
               </span>
               <h3 className="mt-4 text-sm font-bold tracking-tight">Phone numbers</h3>
               <div className="mt-2 space-y-1.5">
-                {(phones.length ? phones : ["+234 800 000 0000"]).map((ph) => (
+                {(phones.length ? phones : ["+233 23 822 2901", "+233 24 601 0017"]).map((ph) => (
                   <a
                     key={ph}
                     href={`tel:${ph.replace(/[^+\d]/g, "")}`}
@@ -699,7 +700,7 @@ export default function Landing() {
               </span>
               <h3 className="mt-4 text-sm font-bold tracking-tight">Email us</h3>
               <div className="mt-2 space-y-1.5">
-                {(emails.length ? emails : ["info@rccgsolutionambassador.org"]).map((em) => (
+                {(emails.length ? emails : ["info@rccgambghana.org"]).map((em) => (
                   <a
                     key={em}
                     href={`mailto:${em}`}
