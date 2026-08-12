@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { getCurrentUser } from "./users";
 import {
@@ -149,6 +149,15 @@ const OLD_SEED_TITLES = [
   "Provincial Choir & Music Festival",
 ];
 
+/** Church content editors must be signed in with a real account — guests can't edit. */
+const getEditor = async (ctx: QueryCtx) => {
+  const user = await getCurrentUser(ctx);
+  if (!user || user.isAnonymous) {
+    throw new Error("Sign in with an email to manage church content.");
+  }
+  return user;
+};
+
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 /** Public: the single church profile record, or null before seeding. */
@@ -181,12 +190,12 @@ export const listPrograms = query({
   },
 });
 
-/** Signed-in only: every program including inactive ones (admin view). */
+/** Signed-in, non-guest only: every program including inactive ones (admin view). */
 export const listAllPrograms = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    if (!user || user.isAnonymous) return [];
     const all = await ctx.db.query("programs").collect();
     return all.sort((a, b) => a.order - b.order || a._creationTime - b._creationTime);
   },
@@ -248,8 +257,7 @@ export const saveInfo = mutation({
     socials: v.array(churchSocialValidator),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) throw new Error("Not signed in");
+    const user = await getEditor(ctx);
     const info = await ctx.db.query("churchInfo").first();
     const patch = { ...args, updatedAt: Date.now() };
     if (info) {
@@ -273,8 +281,7 @@ export const createProgram = mutation({
     isActive: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) throw new Error("Not signed in");
+    await getEditor(ctx);
     return await ctx.db.insert("programs", {
       title: args.title.trim(),
       description: args.description.trim(),
@@ -302,8 +309,7 @@ export const updateProgram = mutation({
     isActive: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) throw new Error("Not signed in");
+    await getEditor(ctx);
     const program = await ctx.db.get(args.id);
     if (!program) throw new Error("Program not found");
     const { id, ...patch } = args;
@@ -325,8 +331,7 @@ export const updateProgram = mutation({
 export const deleteProgram = mutation({
   args: { id: v.id("programs") },
   handler: async (ctx, { id }) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) throw new Error("Not signed in");
+    await getEditor(ctx);
     const program = await ctx.db.get(id);
     if (!program) throw new Error("Program not found");
     await ctx.db.delete(id);
