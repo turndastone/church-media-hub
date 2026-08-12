@@ -114,6 +114,7 @@ export default function Landing() {
   const phones = info?.phones ?? [];
   const emails = info?.emails ?? [];
   const socials = info?.socials ?? [];
+  const website = info?.website ?? "";
   const allPrograms = programs ?? [];
 
   const grouped = (cat: Category) =>
@@ -625,7 +626,20 @@ export default function Landing() {
                 </p>
               </div>
               <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {socials.length === 0 ? (
+                {website && (
+                  <a
+                    href={website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 p-4 text-center transition-colors hover:border-primary/70"
+                  >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary transition-transform group-hover:scale-110">
+                      <Globe className="h-4.5 w-4.5" />
+                    </span>
+                    <span className="text-xs font-semibold">Website</span>
+                  </a>
+                )}
+                {socials.length === 0 && !website ? (
                   <p className="col-span-full rounded-lg border border-dashed border-white/15 p-5 text-center text-xs text-muted-foreground">
                     Social links coming soon.
                   </p>

@@ -19,6 +19,8 @@ export const DEFAULT_INFO = {
   verse:
     "Call unto me, and I will answer thee, and shew thee great and mighty things, which thou knowest not. — Jeremiah 33:3",
   address: "Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana",
+  website:
+    "https://rccgsolutionambassadors.my.canva.site/welcome-to-rccg-solution-ambassadors-dobro",
   phones: ["+233 23 822 2901", "+233 24 601 0017"],
   emails: ["rccgsolutionambassador@gmail.com"],
   socials: [
@@ -210,19 +212,28 @@ export const ensureSeed = mutation({
     const existingInfo = await ctx.db.query("churchInfo").first();
     if (!existingInfo) {
       await ctx.db.insert("churchInfo", { ...DEFAULT_INFO, updatedAt: Date.now() });
-    } else if (
-      existingInfo.address === OLD_PLACEHOLDER_ADDRESS ||
-      existingInfo.phones.includes(OLD_PLACEHOLDER_PHONE) ||
-      existingInfo.emails.includes(OLD_PLACEHOLDER_EMAIL)
-    ) {
-      // One-time migration: replace placeholder contact details with the real ones.
-      await ctx.db.patch(existingInfo._id, {
-        address: DEFAULT_INFO.address,
-        phones: DEFAULT_INFO.phones,
-        emails: DEFAULT_INFO.emails,
-        socials: DEFAULT_INFO.socials,
-        updatedAt: Date.now(),
-      });
+    } else {
+      const hasPlaceholderContact =
+        existingInfo.address === OLD_PLACEHOLDER_ADDRESS ||
+        existingInfo.phones.includes(OLD_PLACEHOLDER_PHONE) ||
+        existingInfo.emails.includes(OLD_PLACEHOLDER_EMAIL);
+      if (hasPlaceholderContact) {
+        // One-time migration: replace placeholder contact details with the real ones.
+        await ctx.db.patch(existingInfo._id, {
+          address: DEFAULT_INFO.address,
+          phones: DEFAULT_INFO.phones,
+          emails: DEFAULT_INFO.emails,
+          socials: DEFAULT_INFO.socials,
+          website: DEFAULT_INFO.website,
+          updatedAt: Date.now(),
+        });
+      } else if (!existingInfo.website) {
+        // Backfill the website URL on records created before the field existed.
+        await ctx.db.patch(existingInfo._id, {
+          website: DEFAULT_INFO.website,
+          updatedAt: Date.now(),
+        });
+      }
     }
     const programs = await ctx.db.query("programs").collect();
 
@@ -252,6 +263,7 @@ export const saveInfo = mutation({
     welcomeMessage: v.string(),
     verse: v.string(),
     address: v.string(),
+    website: v.optional(v.string()),
     phones: v.array(v.string()),
     emails: v.array(v.string()),
     socials: v.array(churchSocialValidator),
@@ -259,7 +271,12 @@ export const saveInfo = mutation({
   handler: async (ctx, args) => {
     const user = await getEditor(ctx);
     const info = await ctx.db.query("churchInfo").first();
-    const patch = { ...args, updatedAt: Date.now() };
+    const { website, ...rest } = args;
+    const patch = {
+      ...rest,
+      ...(website && website.trim() ? { website: website.trim() } : {}),
+      updatedAt: Date.now(),
+    };
     if (info) {
       await ctx.db.patch(info._id, patch);
       return info._id;

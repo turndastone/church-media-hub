@@ -110,6 +110,7 @@ export default function Church() {
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [verse, setVerse] = useState("");
   const [address, setAddress] = useState("");
+  const [website, setWebsite] = useState("");
   const [phones, setPhones] = useState("");
   const [emails, setEmails] = useState("");
   const [socials, setSocials] = useState<SocialRow[]>([]);
@@ -123,6 +124,7 @@ export default function Church() {
     setWelcomeMessage(info.welcomeMessage);
     setVerse(info.verse);
     setAddress(info.address);
+    setWebsite(info.website ?? "");
     setPhones(info.phones.join("\n"));
     setEmails(info.emails.join("\n"));
     setSocials(info.socials.map((s) => ({ platform: s.platform, url: s.url })));
@@ -163,6 +165,7 @@ export default function Church() {
         welcomeMessage: welcomeMessage.trim(),
         verse: verse.trim(),
         address: address.trim(),
+        website: website.trim() || undefined,
         phones: lineListToArray(phones),
         emails: lineListToArray(emails),
         socials: socials.filter((s) => s.url.trim()),
@@ -255,6 +258,7 @@ export default function Church() {
       info.welcomeMessage !== welcomeMessage.trim() ||
       info.verse !== verse.trim() ||
       info.address !== address.trim() ||
+      (info.website ?? "") !== website.trim() ||
       info.phones.join("\n") !== phones ||
       info.emails.join("\n") !== emails ||
       JSON.stringify(info.socials) !==
@@ -328,7 +332,15 @@ export default function Church() {
             <Input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="12 Solution Way, Off Redemption Avenue, Lagos, Nigeria"
+              placeholder="Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana"
+            />
+          </label>
+          <label className="space-y-1.5 lg:col-span-2">
+            <span className="tech-label">Website URL · temporary domain</span>
+            <Input
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://rccgsolutionambassadors.my.canva.site/..."
             />
           </label>
           <label className="space-y-1.5">

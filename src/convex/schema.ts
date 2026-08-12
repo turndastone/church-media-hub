@@ -164,6 +164,7 @@ const schema = defineSchema(
       welcomeMessage: v.string(),
       verse: v.string(),
       address: v.string(),
+      website: v.optional(v.string()),
       phones: v.array(v.string()),
       emails: v.array(v.string()),
       socials: v.array(churchSocialValidator),
