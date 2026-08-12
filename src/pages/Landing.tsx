@@ -700,7 +700,7 @@ export default function Landing() {
               </span>
               <h3 className="mt-4 text-sm font-bold tracking-tight">Email us</h3>
               <div className="mt-2 space-y-1.5">
-                {(emails.length ? emails : ["info@rccgambghana.org"]).map((em) => (
+                {(emails.length ? emails : ["rccgsolutionambassador@gmail.com"]).map((em) => (
                   <a
                     key={em}
                     href={`mailto:${em}`}

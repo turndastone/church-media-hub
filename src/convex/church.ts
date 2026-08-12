@@ -20,7 +20,7 @@ export const DEFAULT_INFO = {
     "Call unto me, and I will answer thee, and shew thee great and mighty things, which thou knowest not. — Jeremiah 33:3",
   address: "Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana",
   phones: ["+233 23 822 2901", "+233 24 601 0017"],
-  emails: ["info@rccgambghana.org"],
+  emails: ["rccgsolutionambassador@gmail.com"],
   socials: [
     { platform: "facebook", url: "https://www.facebook.com/61560761229546" },
     { platform: "youtube", url: "https://youtu.be/6UrnmOc3kSQ" },
@@ -35,6 +35,7 @@ export const DEFAULT_INFO = {
 const OLD_PLACEHOLDER_ADDRESS =
   "12 Solution Way, Off Redemption Avenue, Lagos, Nigeria";
 const OLD_PLACEHOLDER_PHONE = "+234 801 234 5678";
+const OLD_PLACEHOLDER_EMAIL = "info@rccgambghana.org"; // interim provincial-HQ email
 
 // Official RCCG Solution Ambassadors service schedule.
 const SEED_PROGRAMS = [
@@ -202,7 +203,8 @@ export const ensureSeed = mutation({
       await ctx.db.insert("churchInfo", { ...DEFAULT_INFO, updatedAt: Date.now() });
     } else if (
       existingInfo.address === OLD_PLACEHOLDER_ADDRESS ||
-      existingInfo.phones.includes(OLD_PLACEHOLDER_PHONE)
+      existingInfo.phones.includes(OLD_PLACEHOLDER_PHONE) ||
+      existingInfo.emails.includes(OLD_PLACEHOLDER_EMAIL)
     ) {
       // One-time migration: replace placeholder contact details with the real ones.
       await ctx.db.patch(existingInfo._id, {

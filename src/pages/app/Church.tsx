@@ -346,7 +346,7 @@ export default function Church() {
               value={emails}
               onChange={(e) => setEmails(e.target.value)}
               rows={3}
-              placeholder={"info@rccgsolutionambassador.org"}
+              placeholder={"rccgsolutionambassador@gmail.com"}
             />
           </label>
         </div>
