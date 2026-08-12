@@ -31,183 +31,116 @@ export const DEFAULT_INFO = {
   ],
 };
 
+// Official RCCG Solution Ambassadors service schedule.
 const SEED_PROGRAMS = [
   {
-    title: "Morning Dew Prayer",
+    title: "Sunday Service",
     description:
-      "Start the day with intercession, worship, and the Word before heading out into the world.",
-    category: PROGRAM_CATEGORY.DAILY,
-    day: "Monday – Saturday",
-    time: "5:00 – 6:00 AM",
-    venue: "Main Auditorium & Online",
+      "A glorious time of praise, worship, and the undiluted Word of God for the whole family.",
+    category: PROGRAM_CATEGORY.WEEKLY,
+    day: "Every Sunday",
+    time: "8:00 AM – 11:00 AM",
+    venue: "Dobro",
     order: 1,
     isActive: true,
   },
   {
-    title: "Open Heavens — Daily Devotional",
-    description:
-      "A daily devotional encounter with God, led by our pastors and shared across our social platforms.",
-    category: PROGRAM_CATEGORY.DAILY,
-    day: "Every day",
-    time: "6:00 AM",
-    venue: "Online",
-    order: 2,
-    isActive: true,
-  },
-  {
-    title: "Midnight Prayer",
-    description:
-      "Fervent midnight intercession for the family, the church, and the nation.",
-    category: PROGRAM_CATEGORY.DAILY,
-    day: "Every day",
-    time: "12:00 AM",
-    venue: "Prayer Altar",
-    order: 3,
-    isActive: true,
-  },
-  {
-    title: "Sunday School",
-    description:
-      "Foundational Bible teaching for all ages before the main worship service.",
-    category: PROGRAM_CATEGORY.WEEKLY,
-    day: "Sundays",
-    time: "7:30 – 8:30 AM",
-    venue: "Classrooms",
-    order: 1,
-    isActive: true,
-  },
-  {
-    title: "Sunday Worship Service",
-    description:
-      "An atmosphere of praise, worship, and the undiluted Word of God for the whole family.",
-    category: PROGRAM_CATEGORY.WEEKLY,
-    day: "Sundays",
-    time: "8:30 AM – 12:00 PM",
-    venue: "Main Auditorium",
-    order: 2,
-    isActive: true,
-  },
-  {
-    title: "Bible Study",
+    title: "Digging Deep",
     description:
       "Deep, interactive study of the scriptures led by our ministers.",
     category: PROGRAM_CATEGORY.WEEKLY,
-    day: "Tuesdays",
-    time: "5:00 – 6:30 PM",
-    venue: "Main Auditorium",
+    day: "Every Tuesday",
+    time: "6:00 PM – 7:00 PM",
+    venue: "Dobro",
+    order: 2,
+    isActive: true,
+  },
+  {
+    title: "Faith Clinic",
+    description:
+      "Practical teaching that turns the Word into workable solutions for everyday life.",
+    category: PROGRAM_CATEGORY.WEEKLY,
+    day: "Every Thursday",
+    time: "6:00 PM – 7:00 PM",
+    venue: "Dobro",
     order: 3,
     isActive: true,
   },
   {
-    title: "Digging Deep (Faith Clinic)",
+    title: "Youth Sunday",
     description:
-      "A practical teaching session that turns the Word into workable solutions for everyday life.",
+      "A special Sunday when the youths lead and minister during the main service.",
     category: PROGRAM_CATEGORY.WEEKLY,
-    day: "Thursdays",
-    time: "5:00 – 6:30 PM",
-    venue: "Main Auditorium",
+    day: "Every Third Sunday",
+    time: "During Sunday Service",
+    venue: "Dobro",
     order: 4,
     isActive: true,
   },
   {
-    title: "Prayer & Deliverance",
+    title: "Communion Service",
     description:
-      "A night of intense prayer, praise, and ministration for breakthrough.",
-    category: PROGRAM_CATEGORY.WEEKLY,
-    day: "Fridays",
-    time: "6:00 – 8:00 PM",
-    venue: "Main Auditorium",
-    order: 5,
-    isActive: true,
-  },
-  {
-    title: "Solution Youths Fellowship",
-    description:
-      "A lively gathering for young people — worship, mentorship, and growth.",
-    category: PROGRAM_CATEGORY.WEEKLY,
-    day: "Saturdays",
-    time: "4:00 – 6:00 PM",
-    venue: "Youth Hall",
-    order: 6,
-    isActive: true,
-  },
-  {
-    title: "Holy Ghost Service",
-    description:
-      "A power-packed monthly service of worship and ministration hosted by the parish.",
+      "A reverent service of Holy Communion and thanksgiving.",
     category: PROGRAM_CATEGORY.MONTHLY,
-    day: "First Friday of the month",
-    time: "6:00 PM – Midnight",
-    venue: "Main Auditorium",
-    order: 1,
-    isActive: true,
-  },
-  {
-    title: "Thanksgiving Service",
-    description:
-      "A special Sunday of testimonies and gratitude for God's faithfulness.",
-    category: PROGRAM_CATEGORY.MONTHLY,
-    day: "First Sunday of the month",
-    time: "8:30 AM – 12:00 PM",
-    venue: "Main Auditorium",
-    order: 2,
-    isActive: true,
-  },
-  {
-    title: "Monthly Fasting & Prayer",
-    description:
-      "Corporate fasting and prayer for the church, families, and the nation.",
-    category: PROGRAM_CATEGORY.MONTHLY,
-    day: "Last Saturday of the month",
-    time: "8:00 AM – 12:00 PM",
-    venue: "Prayer Altar",
-    order: 3,
-    isActive: true,
-  },
-  {
-    title: "Provincial Convention",
-    description:
-      "Annual gathering of all parishes in the province for worship, teaching, and miracles.",
-    category: PROGRAM_CATEGORY.PROVINCIAL,
-    day: "Annually · July",
-    time: "All week",
-    venue: "Provincial Headquarters",
-    order: 1,
-    isActive: true,
-  },
-  {
-    title: "Provincial Youth Convention",
-    description:
-      "A week-long programme for young ambassadors across the province.",
-    category: PROGRAM_CATEGORY.PROVINCIAL,
-    day: "Annually · August",
-    time: "All week",
-    venue: "Provincial Headquarters",
-    order: 2,
-    isActive: true,
-  },
-  {
-    title: "Provincial Ministers' Conference",
-    description:
-      "Equipping ministers and workers across the province for greater effectiveness.",
-    category: PROGRAM_CATEGORY.PROVINCIAL,
-    day: "Quarterly",
-    time: "9:00 AM – 4:00 PM",
-    venue: "Provincial Headquarters",
-    order: 3,
-    isActive: true,
-  },
-  {
-    title: "Provincial Choir & Music Festival",
-    description:
-      "A celebration of praise as choirs from every parish minister together.",
-    category: PROGRAM_CATEGORY.PROVINCIAL,
-    day: "Annually · December",
+    day: "First Sunday of Every Month",
     time: "5:00 PM",
-    venue: "Provincial Headquarters",
-    order: 4,
+    venue: "Ambassadors, Labadi Trade Fair, LA",
+    order: 1,
     isActive: true,
   },
+  {
+    title: "Begin the Month with the Lord",
+    description:
+      "Start the month right with early morning prayer and praise.",
+    category: PROGRAM_CATEGORY.MONTHLY,
+    day: "First Tuesday of Every Month",
+    time: "6:00 AM – 7:00 AM",
+    venue: "Dobro",
+    order: 2,
+    isActive: true,
+  },
+  {
+    title: "Night Vigil",
+    description:
+      "A powerful night of prayer, praise, and ministration for breakthrough.",
+    category: PROGRAM_CATEGORY.MONTHLY,
+    day: "Second Friday of Every Month",
+    time: "10:00 PM – 1:00 AM",
+    venue: "Dobro",
+    order: 3,
+    isActive: true,
+  },
+  {
+    title: "Provincial Vigil",
+    description:
+      "A province-wide night vigil hosted at the provincial headquarters.",
+    category: PROGRAM_CATEGORY.PROVINCIAL,
+    day: "Last Friday of Every Month",
+    time: "10:00 PM – 1:00 AM",
+    venue: "Ambassadors, Labadi Trade Fair, LA",
+    order: 1,
+    isActive: true,
+  },
+];
+
+// Titles from the placeholder schedule that shipped before the real one.
+const OLD_SEED_TITLES = [
+  "Morning Dew Prayer",
+  "Open Heavens — Daily Devotional",
+  "Midnight Prayer",
+  "Sunday School",
+  "Sunday Worship Service",
+  "Bible Study",
+  "Digging Deep (Faith Clinic)",
+  "Prayer & Deliverance",
+  "Solution Youths Fellowship",
+  "Holy Ghost Service",
+  "Thanksgiving Service",
+  "Monthly Fasting & Prayer",
+  "Provincial Convention",
+  "Provincial Youth Convention",
+  "Provincial Ministers' Conference",
+  "Provincial Choir & Music Festival",
 ];
 
 // ─── Queries ────────────────────────────────────────────────────────────────
@@ -264,7 +197,16 @@ export const ensureSeed = mutation({
       await ctx.db.insert("churchInfo", { ...DEFAULT_INFO, updatedAt: Date.now() });
     }
     const programs = await ctx.db.query("programs").collect();
-    if (programs.length === 0) {
+
+    // One-time migration: replace the old placeholder schedule with the real one.
+    const hasOldSeed = programs.some((p) => OLD_SEED_TITLES.includes(p.title));
+    if (hasOldSeed) {
+      for (const p of programs) {
+        await ctx.db.delete(p._id);
+      }
+    }
+
+    if (hasOldSeed || programs.length === 0) {
       for (const p of SEED_PROGRAMS) {
         await ctx.db.insert("programs", p);
       }

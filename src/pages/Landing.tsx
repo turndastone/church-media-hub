@@ -126,7 +126,7 @@ export default function Landing() {
 
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
   const sundayService = allPrograms.find(
-    (p) => p.category === "weekly" && p.title.toLowerCase().includes("sunday worship"),
+    (p) => p.category === "weekly" && p.title.toLowerCase().includes("sunday service"),
   );
 
   // Programs happening today, sorted by start time. Upcoming ones first so the
@@ -403,7 +403,7 @@ export default function Landing() {
                 we would love to meet you.
               </p>
               <div className="mt-7 flex flex-wrap gap-2">
-                {["Sunday Worship", "Bible Study", "Prayer & Deliverance", "Youth Fellowship"].map(
+                {["Sunday Service", "Digging Deep", "Faith Clinic", "Youth Sunday"].map(
                   (tag) => (
                     <span
                       key={tag}

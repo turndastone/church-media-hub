@@ -2,9 +2,10 @@
  * Helpers for matching church programs to the current day and time.
  *
  * The program "day" field is free text (e.g. "Sundays", "Monday – Saturday",
- * "Every day", "First Friday of the month"), so matching is deliberately
- * heuristic: it understands day names, inclusive weekday ranges, recurring
- * "every day" programs, and "first/last X of the month" patterns.
+ * "Every day", "Every Third Sunday", "Second Friday of Every Month"), so
+ * matching is deliberately heuristic: it understands day names, inclusive
+ * weekday ranges, recurring "every day" programs, "every Nth weekday"
+ * patterns, and "first/second/…/last X of every month" patterns.
  */
 
 export interface ScheduleProgram {
@@ -49,30 +50,51 @@ function findDayNames(day: string): DayName[] {
   return found.sort((a, b) => a.index - b.index).map((f) => f.name);
 }
 
+const ORDINALS: Record<string, number> = {
+  first: 1,
+  second: 2,
+  third: 3,
+  fourth: 4,
+};
+
+/** Which occurrence of today's weekday this is within the month (1-based). */
+function nthWeekdayOfMonth(now: Date): number {
+  return Math.ceil(now.getDate() / 7);
+}
+
 /** True when the program's "day" description includes `now`'s weekday. */
 export function isProgramToday(day: string, now: Date): boolean {
   const lower = day.toLowerCase().trim();
   if (!lower) return false;
   if (lower.includes("every day")) return true;
 
-  // "First Friday of the month" / "Last Saturday of the month"
+  const today = now.getDay();
+  const weekday = "(sunday|monday|tuesday|wednesday|thursday|friday|saturday)";
+
+  // "Every Third Sunday" / "Every Second Friday"
+  const ordinal = lower.match(new RegExp(`^every\\s+(first|second|third|fourth)\\s+${weekday}`));
+  if (ordinal) {
+    const target = DAY_INDEX[ordinal[2] as DayName];
+    return today === target && nthWeekdayOfMonth(now) === ORDINALS[ordinal[1]];
+  }
+
+  // "First Sunday of Every Month" / "Second Friday of Every Month" /
+  // "Last Friday of Every Month" (also accepts "of the month")
   const firstLast = lower.match(
-    /^(first|last)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+of\s+the\s+month/,
+    new RegExp(`^(first|second|third|fourth|last)\\s+${weekday}\\s+of\\s+(the|every)\\s+month`),
   );
   if (firstLast) {
     const target = DAY_INDEX[firstLast[2] as DayName];
-    const today = now.getDay();
-    if (firstLast[1] === "first") {
-      return today === target && now.getDate() <= 7;
+    if (firstLast[1] === "last") {
+      const lastDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      return today === target && now.getDate() > lastDate - 7;
     }
-    const lastDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    return today === target && now.getDate() > lastDate - 7;
+    return today === target && nthWeekdayOfMonth(now) === ORDINALS[firstLast[1]];
   }
 
   const dayNames = findDayNames(lower);
   if (dayNames.length === 0) return false;
 
-  const today = now.getDay();
   if (dayNames.length >= 2) {
     // Inclusive range such as "Monday – Saturday", handling week wrap-around.
     const start = DAY_INDEX[dayNames[0]];

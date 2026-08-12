@@ -38,6 +38,32 @@ describe("isProgramToday", () => {
     expect(isProgramToday("Last Saturday of the month", new Date(2026, 7, 22))).toBe(false);
   });
 
+  it("matches 'First Sunday of Every Month'", () => {
+    expect(isProgramToday("First Sunday of Every Month", new Date(2026, 7, 2))).toBe(true);
+    expect(isProgramToday("First Sunday of Every Month", new Date(2026, 7, 9))).toBe(false);
+  });
+
+  it("matches 'First Tuesday of Every Month'", () => {
+    expect(isProgramToday("First Tuesday of Every Month", new Date(2026, 7, 4))).toBe(true);
+    expect(isProgramToday("First Tuesday of Every Month", new Date(2026, 7, 11))).toBe(false);
+  });
+
+  it("matches 'Second Friday of Every Month'", () => {
+    expect(isProgramToday("Second Friday of Every Month", new Date(2026, 7, 14))).toBe(true);
+    expect(isProgramToday("Second Friday of Every Month", new Date(2026, 7, 7))).toBe(false);
+  });
+
+  it("matches 'Every Third Sunday'", () => {
+    expect(isProgramToday("Every Third Sunday", new Date(2026, 7, 16))).toBe(true);
+    expect(isProgramToday("Every Third Sunday", new Date(2026, 7, 9))).toBe(false);
+    expect(isProgramToday("Every Third Sunday", new Date(2026, 7, 23))).toBe(false);
+  });
+
+  it("matches 'Last Friday of Every Month'", () => {
+    expect(isProgramToday("Last Friday of Every Month", new Date(2026, 7, 28))).toBe(true);
+    expect(isProgramToday("Last Friday of Every Month", new Date(2026, 7, 21))).toBe(false);
+  });
+
   it("ignores annual, quarterly, and non-day descriptions", () => {
     expect(isProgramToday("Annually · July", WED)).toBe(false);
     expect(isProgramToday("Quarterly", WED)).toBe(false);
