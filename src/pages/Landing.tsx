@@ -9,6 +9,11 @@ import { LogoMark, Wordmark } from "@/components/wordmark";
 import { ChurchChat } from "@/components/ChurchChat";
 import { cn } from "@/lib/utils";
 import {
+  isProgramToday,
+  parseStartMinutes,
+  sortByStartTime,
+} from "@/lib/churchSchedule";
+import {
   ArrowRight,
   BookOpen,
   CalendarDays,
@@ -124,7 +129,29 @@ export default function Landing() {
     (p) => p.category === "weekly" && p.title.toLowerCase().includes("sunday worship"),
   );
 
+  // Programs happening today, sorted by start time. Upcoming ones first so the
+  // next gathering sits at the top, with earlier ones below labelled as such.
+  const todayNow = new Date();
+  const todaysPrograms = sortByStartTime(
+    allPrograms.filter((p) => isProgramToday(p.day, todayNow)),
+  );
+  const nowMinutes = todayNow.getHours() * 60 + todayNow.getMinutes();
+  const upcoming = todaysPrograms.filter(
+    (p) => (parseStartMinutes(p.time) ?? 0) >= nowMinutes,
+  );
+  const passed = todaysPrograms.filter(
+    (p) => (parseStartMinutes(p.time) ?? 0) < nowMinutes,
+  );
+  const displayToday = [...upcoming, ...passed];
+  const nextUp = upcoming[0] ?? null;
+  const todayLabel = todayNow.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   const navLinks: [string, string][] = [
+    ["Today", "#today"],
     ["About", "#about"],
     ["Programs", "#programs"],
     ["Visit us", "#visit"],
@@ -248,6 +275,112 @@ export default function Landing() {
               })}
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ── Today ──────────────────────────────────────────────────────── */}
+      <section id="today" className="glow-blue border-t border-white/10 py-20">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <motion.div {...fadeUp(0)} className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3.5 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
+              <Clock className="h-3.5 w-3.5" /> Today · {todayLabel}
+            </span>
+            <h2 className="mt-5 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              {todaysPrograms.length > 0 ? (
+                <>What&apos;s happening today?</>
+              ) : (
+                <>A quiet day at {name}</>
+              )}
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-7 text-muted-foreground">
+              {todaysPrograms.length > 0
+                ? `A snapshot of today's gatherings at ${name} — check the times, and come with an expectant heart.`
+                : `No services are scheduled for ${todayLabel.split(",")[0]} — but there is always something coming up.`}
+            </p>
+          </motion.div>
+
+          {displayToday.length === 0 ? (
+            <motion.div
+              {...fadeUp(0.05)}
+              className="mx-auto mt-10 max-w-xl rounded-2xl border border-dashed border-white/15 bg-card/50 p-10 text-center"
+            >
+              <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/60" />
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                Explore our daily, weekly, monthly, and provincial programs
+                below — or ask the AI welcome assistant for the full schedule.
+              </p>
+              <Button asChild size="sm" className="mt-5 cursor-pointer gap-1.5">
+                <a href="#programs">
+                  See all programs <ArrowRight className="h-4 w-4" />
+                </a>
+              </Button>
+            </motion.div>
+          ) : (
+            <>
+              <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {displayToday.map((p, i) => {
+                  const minutes = parseStartMinutes(p.time);
+                  const isNext = nextUp?._id === p._id;
+                  const isPassed = minutes !== null && minutes < nowMinutes;
+                  return (
+                    <motion.div
+                      key={p._id}
+                      {...fadeUp(0.05 * i)}
+                      className={cn(
+                        "group relative flex flex-col rounded-xl border p-5 transition-colors",
+                        isNext
+                          ? "border-accent/60 bg-accent/10"
+                          : "border-white/10 bg-card hover:border-primary/40",
+                      )}
+                    >
+                      {isNext && (
+                        <span className="absolute -top-2.5 left-4 rounded-full bg-accent px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-accent-foreground shadow-md shadow-black/30">
+                          Next up
+                        </span>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                          <Clock className="h-4 w-4" />
+                        </span>
+                        <span
+                          className={cn(
+                            "rounded-full border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em]",
+                            isPassed
+                              ? "border-muted-foreground/30 text-muted-foreground"
+                              : "border-accent/30 bg-accent/10 text-accent",
+                          )}
+                        >
+                          {isPassed ? "Earlier today" : "Today"}
+                        </span>
+                      </div>
+                      <h3 className="mt-4 text-[15px] font-bold tracking-tight">
+                        {p.title}
+                      </h3>
+                      <p className="mt-1.5 flex-1 text-[13px] leading-6 text-muted-foreground">
+                        {p.description}
+                      </p>
+                      <div className="mt-4 space-y-1.5 border-t border-white/10 pt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                        <p className="flex items-center gap-2">
+                          <Clock className="h-3 w-3 text-primary" /> {p.time}
+                        </p>
+                        {p.venue && (
+                          <p className="flex items-center gap-2">
+                            <MapPin className="h-3 w-3 text-primary" /> {p.venue}
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              {upcoming.length === 0 && (
+                <p className="mt-6 text-center text-xs text-muted-foreground">
+                  Today&apos;s programs have wrapped up — but they repeat, and
+                  there is always a gathering to look forward to below.
+                </p>
+              )}
+            </>
+          )}
         </div>
       </section>
 
