@@ -19,6 +19,7 @@ const ControlRoom = lazy(() => import("./pages/app/ControlRoom.tsx"));
 const Integrations = lazy(() => import("./pages/app/Integrations.tsx"));
 const ApiKeys = lazy(() => import("./pages/app/ApiKeys.tsx"));
 const Services = lazy(() => import("./pages/app/Services.tsx"));
+const Church = lazy(() => import("./pages/app/Church.tsx"));
 const Catalog = lazy(() => import("./pages/app/Catalog.tsx"));
 const CatalogItem = lazy(() => import("./pages/app/CatalogItem.tsx"));
 const Upload = lazy(() => import("./pages/app/Upload.tsx"));
@@ -135,7 +136,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/" element={<Landing />} />
               <Route
                 path="/auth"
-                element={<AuthPage redirectAfterAuth="/dashboard" />}
+                element={<AuthPage redirectAfterAuth="/dashboard/church" />}
               />
               <Route
                 path="/dashboard"
@@ -151,6 +152,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="integrations" element={<Integrations />} />
                 <Route path="keys" element={<ApiKeys />} />
                 <Route path="services" element={<Services />} />
+                <Route path="church" element={<Church />} />
                 <Route path="catalog" element={<Catalog />} />
                 <Route path="catalog/:id" element={<CatalogItem />} />
                 <Route path="upload" element={<Upload />} />

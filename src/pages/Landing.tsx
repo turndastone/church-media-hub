@@ -10,6 +10,7 @@ import { ChurchChat } from "@/components/ChurchChat";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
+  BookOpen,
   CalendarDays,
   Church,
   Clock,
@@ -163,8 +164,8 @@ export default function Landing() {
               variant="ghost"
               className="hidden cursor-pointer sm:inline-flex"
             >
-              <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
-                {authLoading ? "Loading…" : isAuthenticated ? "Admin dashboard" : "Sign in"}
+              <Link to={isAuthenticated ? "/dashboard/church" : "/auth"}>
+                {authLoading ? "Loading…" : isAuthenticated ? "Church admin" : "Sign in"}
               </Link>
             </Button>
             <Button asChild className="cursor-pointer gap-1.5">
@@ -648,7 +649,7 @@ export default function Landing() {
                 ))}
                 <li>
                   <Link
-                    to={isAuthenticated ? "/dashboard" : "/auth"}
+                    to={isAuthenticated ? "/dashboard/church" : "/auth"}
                     className="cursor-pointer text-muted-foreground transition-colors hover:text-primary"
                   >
                     Church admin

@@ -110,7 +110,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   };
 
   return (
-    <div className="glow-violet min-h-screen flex flex-col">
+    <div className="glow-blue min-h-screen flex flex-col">
 
       {/* Auth Content */}
       <div className="flex-1 flex items-center justify-center px-4">
@@ -131,8 +131,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   </div>
                 <CardTitle className="text-xl">Get Started</CardTitle>
                 <CardDescription>
-                  Sign in or create an account — every new workspace starts with
-                  a 30-day Pro trial.
+                  Sign in to manage the church website, programs, and AI welcome
+                  assistant.
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleEmailSubmit}>
@@ -278,7 +278,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           )}
 
           <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-secondary/40 border-t border-border rounded-b-lg font-mono uppercase tracking-[0.15em]">
-            Alpha Worship One · Secured by{" "}
+            RCCG Solution Ambassador · Secured by{" "}
             <a
               href="https://freebuff.com"
               target="_blank"

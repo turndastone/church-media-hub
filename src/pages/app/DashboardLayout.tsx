@@ -22,6 +22,7 @@ import {
   Bell,
   Cable,
   ChevronRight,
+  Church,
   KeyRound,
   CreditCard,
   LayoutDashboard,
@@ -48,6 +49,7 @@ const NAV = [
   { to: "/dashboard/control", label: "Live Stream Studio", sub: "Go live & manage streams", icon: Radio, end: false },
   { to: "/dashboard/scripture", label: "Sermons Library", sub: "Manage & organize sermons", icon: ScanText, end: false },
   { to: "/dashboard/catalog", label: "Media Library", sub: "Videos · songs · images", icon: Library, end: false },
+  { to: "/dashboard/church", label: "Church Website", sub: "Profile & programs", icon: Church, end: false },
   { to: "/dashboard/services", label: "Services", sub: "Plan the run-of-show", icon: ListOrdered, end: false },
   { to: "/dashboard/integrations", label: "Integrations", sub: "Connect your stack", icon: Cable, end: false },
   { to: "/dashboard/keys", label: "API Keys", sub: "Service keys & secrets", icon: KeyRound, end: false },
@@ -269,7 +271,7 @@ function TitleBar({ page }: { page: NavItem | undefined }) {
         <Wordmark compact />
         <span className="mx-1 h-4 w-px bg-border" />
         <h1 className="truncate text-[13px] font-bold tracking-tight text-foreground">
-          {page?.label ?? "Alpha Worship One"}
+          {page?.label ?? "RCCG Solution Ambassador"}
         </h1>
         <span className="shrink-0 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em] text-primary">
           {page?.sub ?? "Workspace"}
@@ -380,7 +382,7 @@ function StatusBar() {
             obsOnline ? "bg-emerald-400" : "bg-muted-foreground/40",
           )}
         />
-        Alpha Worship One
+        RCCG Solution Ambassador
       </span>
 
       <span className="hidden h-3 w-px shrink-0 bg-border sm:block" />
