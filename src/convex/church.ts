@@ -22,7 +22,7 @@ export const DEFAULT_INFO = {
   website:
     "https://rccgsolutionambassadors.my.canva.site/welcome-to-rccg-solution-ambassadors-dobro",
   phones: ["+233 23 822 2901", "+233 24 601 0017"],
-  emails: ["rccgsolutionambassador@gmail.com"],
+  emails: ["princetetteh355@gmail.com"],
   socials: [
     { platform: "facebook", url: "https://www.facebook.com/61560761229546" },
     { platform: "youtube", url: "https://youtu.be/6UrnmOc3kSQ" },
@@ -216,7 +216,9 @@ export const ensureSeed = mutation({
       const hasPlaceholderContact =
         existingInfo.address === OLD_PLACEHOLDER_ADDRESS ||
         existingInfo.phones.includes(OLD_PLACEHOLDER_PHONE) ||
-        existingInfo.emails.includes(OLD_PLACEHOLDER_EMAIL);
+        existingInfo.emails.includes(OLD_PLACEHOLDER_EMAIL) ||
+        // Temporary swap: published contact email for the moment.
+        existingInfo.emails.includes("rccgsolutionambassador@gmail.com");
       if (hasPlaceholderContact) {
         // One-time migration: replace placeholder contact details with the real ones.
         await ctx.db.patch(existingInfo._id, {
