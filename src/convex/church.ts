@@ -26,12 +26,17 @@ export const DEFAULT_INFO = {
   socials: [
     { platform: "facebook", url: "https://www.facebook.com/61560761229546" },
     { platform: "youtube", url: "https://youtu.be/6UrnmOc3kSQ" },
-    { platform: "instagram", url: "https://instagram.com/rccgsolutionambassador" },
-    { platform: "x", url: "https://x.com/rccg_solution" },
-    { platform: "tiktok", url: "https://tiktok.com/@rccgsolutionambassador" },
     { platform: "whatsapp", url: "https://wa.me/233238222901" },
   ],
 };
+
+// Invented social accounts seeded before the real handles were known — removed
+// from the live site so visitors never land on 404 pages.
+const REMOVED_SOCIAL_URLS = [
+  "https://instagram.com/rccgsolutionambassador",
+  "https://x.com/rccg_solution",
+  "https://tiktok.com/@rccgsolutionambassador",
+];
 
 // Placeholder contact details shipped before the real ones were known.
 const OLD_PLACEHOLDER_ADDRESS =
@@ -229,7 +234,19 @@ export const ensureSeed = mutation({
           website: DEFAULT_INFO.website,
           updatedAt: Date.now(),
         });
-      } else if (!existingInfo.website) {
+      } else {
+        // One-time migration: drop social links to accounts that don't exist.
+        const cleanedSocials = (existingInfo.socials ?? []).filter(
+          (s) => !REMOVED_SOCIAL_URLS.includes(s.url),
+        );
+        if (cleanedSocials.length !== (existingInfo.socials ?? []).length) {
+          await ctx.db.patch(existingInfo._id, {
+            socials: cleanedSocials,
+            updatedAt: Date.now(),
+          });
+        }
+      }
+      if (!existingInfo.website) {
         // Backfill the website URL on records created before the field existed.
         await ctx.db.patch(existingInfo._id, {
           website: DEFAULT_INFO.website,
