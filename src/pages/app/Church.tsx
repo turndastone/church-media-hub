@@ -1,13 +1,14 @@
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/page-header";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -24,17 +25,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Cable,
   CalendarDays,
+  CheckCircle2,
+  CircleDashed,
   Church as ChurchIcon,
   Clock,
   ExternalLink,
+  Eye,
+  EyeOff,
   Globe,
+  KeyRound,
   Loader2,
   MapPin,
   Moon,
   Pencil,
   Plus,
   Save,
+  Sparkles,
   Sunrise,
   Trash2,
 } from "lucide-react";
@@ -334,6 +342,226 @@ function ProfileEditor({
   );
 }
 
+type KeyStatus = "stored" | "env" | "none";
+
+/**
+ * Gemini key management for the AI assistant. Reuses the app-wide key store
+ * (apiKeys), so a key saved here also powers sermon summaries and verse
+ * explanations; a key set in the platform Keys tab keeps working as a
+ * fallback. Values are never read back — only presence flags.
+ */
+function AiAssistantSection() {
+  const stored = useQuery(api.apiKeys.list);
+  const integrationStatus = useAction(api.integrations.status);
+  const setKey = useMutation(api.apiKeys.set);
+  const removeKey = useMutation(api.apiKeys.remove);
+  const explainVerse = useAction(api.gemini.explainVerse);
+
+  const [value, setValue] = useState("");
+  const [show, setShow] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(
+    null,
+  );
+  const [envSet, setEnvSet] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    integrationStatus()
+      .then((s) => {
+        if (active) setEnvSet(Boolean(s.gemini));
+      })
+      .catch(() => {
+        if (active) setEnvSet(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [integrationStatus]);
+
+  const isStored = Boolean(
+    stored?.find((s) => s.key === "GEMINI_API_KEY")?.configured,
+  );
+  const status: KeyStatus = isStored ? "stored" : envSet ? "env" : "none";
+
+  const handleSave = async () => {
+    const v = value.trim();
+    if (!v) return;
+    setSaving(true);
+    try {
+      await setKey({ key: "GEMINI_API_KEY", value: v });
+      setValue("");
+      toast.success("Gemini key saved — the AI assistant is live.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    setTesting(true);
+    setResult(null);
+    try {
+      const r = await explainVerse({ reference: "John 3:16" });
+      setResult({
+        ok: Boolean(r.explanation),
+        message: r.explanation
+          ? "Gemini responded — the key works."
+          : "Gemini returned an empty response.",
+      });
+    } catch (err) {
+      setResult({ ok: false, message: (err as Error).message });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    try {
+      await removeKey({ key: "GEMINI_API_KEY" });
+      setValue("");
+      toast.success(
+        "Gemini key removed — the assistant falls back to built-in answers.",
+      );
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+          <Sparkles className="h-4.5 w-4.5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-bold tracking-tight">
+              AI assistant · Gemini
+            </p>
+            <span
+              className={cn(
+                "flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.18em]",
+                status === "stored"
+                  ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
+                  : status === "env"
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground",
+              )}
+            >
+              {status === "stored" ? (
+                <CheckCircle2 className="h-2.5 w-2.5" />
+              ) : status === "env" ? (
+                <KeyRound className="h-2.5 w-2.5" />
+              ) : (
+                <CircleDashed className="h-2.5 w-2.5" />
+              )}
+              {status === "stored"
+                ? "Saved in app"
+                : status === "env"
+                  ? "Set in env"
+                  : "Not set"}
+            </span>
+          </div>
+          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+            The AI welcome chat on the homepage uses Google Gemini to answer
+            visitors&apos; questions about programs, location, and contacts.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <span className="tech-label">Gemini API key</span>
+        <div className="relative mt-1.5">
+          <Input
+            type={show ? "text" : "password"}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={
+              isStored ? "Saved — paste a new key to replace it" : "AIza…"
+            }
+            className="pr-9 font-mono text-xs"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <button
+            type="button"
+            onClick={() => setShow((s) => !s)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground/70 transition-colors hover:text-foreground"
+            title={show ? "Hide value" : "Show value"}
+          >
+            {show ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+        <p className="mt-1 text-[10px] leading-3.5 text-muted-foreground">
+          Get a free key at Google AI Studio — aistudio.google.com/apikey. Keys
+          saved here take priority; a key set in the platform Keys tab (
+          GOOGLE_API_KEY or GEMINI_API_KEY) works as a fallback.
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          className="cursor-pointer gap-1.5"
+          onClick={handleSave}
+          disabled={saving || !value.trim()}
+        >
+          {saving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Save className="h-3.5 w-3.5" />
+          )}
+          Save key
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="cursor-pointer gap-1.5"
+          onClick={handleTest}
+          disabled={testing || status === "none"}
+        >
+          {testing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Cable className="h-3.5 w-3.5" />
+          )}
+          Test
+        </Button>
+        {isStored && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="cursor-pointer gap-1.5 text-destructive hover:bg-destructive/10"
+            onClick={handleRemove}
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Remove
+          </Button>
+        )}
+      </div>
+
+      {result && (
+        <p
+          className={cn(
+            "mt-3 rounded-lg border px-3 py-2 text-[11px] leading-4",
+            result.ok
+              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
+              : "border-destructive/30 bg-destructive/10 text-destructive",
+          )}
+        >
+          {result.message}
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function Church() {
   const info = useQuery(api.church.getInfo);
   const allPrograms = useQuery(api.church.listAllPrograms);
@@ -455,6 +683,9 @@ export default function Church() {
 
       {/* ── Church profile ─────────────────────────────────────────────── */}
       <ProfileEditor key={info?._id ?? "unseeded"} info={info} />
+
+      {/* ── AI assistant ───────────────────────────────────────────────── */}
+      <AiAssistantSection />
 
       {/* ── Programs ───────────────────────────────────────────────────── */}
       <section className="flex flex-col gap-5">
