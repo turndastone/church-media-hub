@@ -170,7 +170,9 @@ export default function Landing() {
     count: grouped(cat).length,
   }));
 
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  // Exact pinned location of the parish on Google Maps.
+  const mapsHref =
+    "https://www.google.com/maps/place/RCCG+Solution+Ambassadors,+Dobro,+Radiance+fuel+station,+Accra/data=!4m2!3m1!1s0xfdf0b4a264f50a3:0xbde57be899afbf6f!18m1!1e1";
   const weeklyPrograms = allPrograms.filter((p) => p.category === "weekly");
   const services = weeklyPrograms.length
     ? weeklyPrograms.map((p) => ({
