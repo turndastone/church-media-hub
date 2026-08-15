@@ -242,7 +242,7 @@ function ProfileEditor({
           <Textarea
             value={emails}
             onChange={(e) => setEmails(e.target.value)}
-            rows={3}              placeholder={"princetetteh355@gmail.com"}
+            rows={3}              placeholder={"rccgsolutionambassador@gmail.com"}
           />
         </label>
       </div>

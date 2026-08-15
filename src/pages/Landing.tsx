@@ -879,7 +879,7 @@ export default function Landing() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button asChild size="lg" className="cursor-pointer gap-2">
-                <a href={`mailto:${emails[0] ?? "rccgsolutionambassadors@gmail.com"}?subject=Offering%20%26%20Donations`}>
+                <a href={`mailto:${emails[0] ?? "rccgsolutionambassador@gmail.com"}?subject=Offering%20%26%20Donations`}>
                   <HeartHandshake className="h-4 w-4" /> Offer a gift
                 </a>
               </Button>
@@ -936,7 +936,7 @@ export default function Landing() {
               </span>
               <h3 className="mt-4 text-sm font-bold tracking-tight">Email us</h3>
               <div className="mt-2 space-y-1.5">
-                {(emails.length ? emails : ["rccgsolutionambassadors@gmail.com"]).map((em) => (
+                {(emails.length ? emails : ["rccgsolutionambassador@gmail.com"]).map((em) => (
                   <a
                     key={em}
                     href={`mailto:${em}`}
@@ -1043,7 +1043,7 @@ export default function Landing() {
                     {ph}
                   </li>
                 ))}
-                {(emails.length ? emails : ["rccgsolutionambassadors@gmail.com"]).map((em) => (
+                {(emails.length ? emails : ["rccgsolutionambassador@gmail.com"]).map((em) => (
                   <li key={em} className="flex items-center gap-2">
                     <Mail className="h-3.5 w-3.5 shrink-0 text-primary" />
                     {em}
