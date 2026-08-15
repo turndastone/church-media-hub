@@ -19,8 +19,7 @@ export const DEFAULT_INFO = {
   verse:
     "Call unto me, and I will answer thee, and shew thee great and mighty things, which thou knowest not. — Jeremiah 33:3",
   address: "Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana",
-  website:
-    "https://rccgsolutionambassadors.my.canva.site/welcome-to-rccg-solution-ambassadors-dobro",
+  website: "",
   phones: ["+233 23 822 2901", "+233 24 601 0017"],
   emails: ["rccgsolutionambassador@gmail.com"],
   socials: [
@@ -248,10 +247,10 @@ export const ensureSeed = mutation({
           });
         }
       }
-      if (!existingInfo.website) {
-        // Backfill the website URL on records created before the field existed.
+      if (existingInfo.website) {
+        // One-time removal: the public website link was taken down.
         await ctx.db.patch(existingInfo._id, {
-          website: DEFAULT_INFO.website,
+          website: "",
           updatedAt: Date.now(),
         });
       }

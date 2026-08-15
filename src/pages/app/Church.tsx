@@ -221,11 +221,11 @@ function ProfileEditor({
           />
         </label>
         <label className="space-y-1.5 lg:col-span-2">
-          <span className="tech-label">Website URL · temporary domain</span>
+          <span className="tech-label">Website URL · optional</span>
           <Input
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
-            placeholder="https://rccgsolutionambassadors.my.canva.site/..."
+            placeholder="https://your-church.example.com"
           />
         </label>
         <label className="space-y-1.5">

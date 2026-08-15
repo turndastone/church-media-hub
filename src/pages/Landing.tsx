@@ -87,9 +87,6 @@ const DEFAULT_TAGLINE = "A Parish of the Redeemed Christian Church of God";
 const DEFAULT_VERSE =
   "Call unto me, and I will answer thee, and shew thee great and mighty things, which thou knowest not. — Jeremiah 33:3";
 
-// The parish's public live page (mirrors the church's Canva site).
-const LIVE_PAGE = "https://rccgsolutionambassadors.my.canva.site/_online";
-
 const FALLBACK_SERVICES = [
   {
     title: "Sunday Service",
@@ -443,17 +440,17 @@ export default function Landing() {
                   </span>
                   <div>
                     <p className="text-sm font-bold tracking-tight">
-                      Missed a service?
+                      Join the media team
                     </p>
                     <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-                      Replays & live messages
+                      Lyrics · scripture · live stream
                     </p>
                   </div>
                 </div>
                 <Button asChild className="w-full cursor-pointer gap-2">
-                  <a href={LIVE_PAGE} target="_blank" rel="noopener noreferrer">
-                    <Video className="h-4 w-4" /> Watch messages
-                  </a>
+                  <Link to="/dashboard/control">
+                    <Video className="h-4 w-4" /> Open the console
+                  </Link>
                 </Button>
               </motion.div>
             </div>
@@ -691,13 +688,8 @@ export default function Landing() {
               </div>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="cursor-pointer gap-2">
-                  <a href={LIVE_PAGE} target="_blank" rel="noopener noreferrer">
-                    <Radio className="h-4 w-4" /> Watch live
-                  </a>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="cursor-pointer gap-2">
                   <Link to="/dashboard/control">
-                    <Video className="h-4 w-4" /> Run the stream
+                    <Radio className="h-4 w-4" /> Run the stream
                   </Link>
                 </Button>
               </div>
