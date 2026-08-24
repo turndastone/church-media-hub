@@ -1,15 +1,96 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 440" fill="none">
   <defs>
-    <linearGradient id="bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#1d3fae"/>
-      <stop offset="1" stop-color="#0b1f5e"/>
-    </linearGradient>
-    <linearGradient id="cross" x1="32" y1="18" x2="32" y2="46" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#f7e08b"/>
-      <stop offset="1" stop-color="#d4a72c"/>
-    </linearGradient>
+    <path id="topArc" d="M 50,200 a 150,150 0 0,1 300,0" />
+    <path id="bottomArc" d="M 350,200 a 150,150 0 0,1 -300,0" />
+    <clipPath id="circleClip">
+      <circle cx="200" cy="200" r="155" />
+    </clipPath>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#bg)" stroke="rgba(255,255,255,0.16)" stroke-width="2"/>
-  <path d="M32 8V12M32 52V56M8 32H12M52 32H56M14.3 14.3L17.1 17.1M46.9 46.9L49.7 49.7M49.7 14.3L46.9 17.1M17.1 46.9L14.3 49.7" stroke="rgba(255,255,255,0.35)" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M24 18H40M32 18V46M27 37H37" stroke="url(#cross)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Outer dark navy circle -->
+  <circle cx="200" cy="200" r="195" fill="#1a1058" />
+  
+  <!-- White/cream ring -->
+  <circle cx="200" cy="200" r="175" fill="#f5f0e8" stroke="#c9a84c" stroke-width="3" />
+  
+  <!-- Inner dark navy circle -->
+  <circle cx="200" cy="200" r="155" fill="#1a1058" />
+
+  <!-- Gold accent ring -->
+  <circle cx="200" cy="200" r="155" fill="none" stroke="#c9a84c" stroke-width="2" />
+  <circle cx="200" cy="200" r="175" fill="none" stroke="#1a1058" stroke-width="2" />
+
+  <!-- Curved text: RCCG SOLUTION at top -->
+  <text font-family="Georgia, 'Times New Roman', serif" font-weight="bold" fill="#1a1058" letter-spacing="3">
+    <textPath href="#topArc" startOffset="50%" text-anchor="middle" font-size="26">RCCG SOLUTION</textPath>
+  </text>
+
+  <!-- Curved text: AMBASSADORS at bottom -->
+  <text font-family="Georgia, 'Times New Roman', serif" font-weight="bold" fill="#1a1058" letter-spacing="3">
+    <textPath href="#bottomArc" startOffset="50%" text-anchor="middle" font-size="26">AMBASSADORS</textPath>
+  </text>
+
+  <!-- Gold dot accents on left and right -->
+  <circle cx="38" cy="200" r="7" fill="#c9a84c" />
+  <circle cx="362" cy="200" r="7" fill="#c9a84c" />
+
+  <!-- Inner glow/radiance behind cross -->
+  <circle cx="200" cy="170" r="60" fill="#c9a84c" opacity="0.15" />
+  <circle cx="200" cy="170" r="40" fill="#c9a84c" opacity="0.1" />
+
+  <!-- Dove above cross -->
+  <g transform="translate(200, 90) scale(0.9)">
+    <!-- Dove body -->
+    <ellipse cx="0" cy="0" rx="12" ry="8" fill="#d4c9a8" />
+    <!-- Left wing -->
+    <path d="M -5,-2 Q -25,-25 -15,-35 Q -5,-28 0,-8" fill="#e8dcc4" stroke="#c9a84c" stroke-width="0.5" />
+    <!-- Right wing -->
+    <path d="M 5,-2 Q 25,-25 15,-35 Q 5,-28 0,-8" fill="#e8dcc4" stroke="#c9a84c" stroke-width="0.5" />
+    <!-- Head -->
+    <circle cx="0" cy="-5" r="5" fill="#e8dcc4" />
+    <!-- Beak -->
+    <path d="M 0,-7 L 3,-5 L 0,-4" fill="#c9a84c" />
+  </g>
+
+  <!-- Cross -->
+  <g transform="translate(200, 160)">
+    <!-- Vertical bar -->
+    <rect x="-8" y="-60" width="16" height="100" rx="2" fill="#c9a84c" />
+    <!-- Horizontal bar -->
+    <rect x="-35" y="-35" width="70" height="14" rx="2" fill="#c9a84c" />
+    <!-- Cross highlights -->
+    <rect x="-6" y="-58" width="4" height="96" rx="1" fill="#e8c84c" opacity="0.4" />
+    <rect x="-33" y="-33" width="66" height="4" rx="1" fill="#e8c84c" opacity="0.4" />
+  </g>
+
+  <!-- Open Bible -->
+  <g transform="translate(200, 250)">
+    <!-- Left page -->
+    <path d="M -5,-15 L -5,10 Q -25,5 -35,12 L -35,-8 Q -25,-12 -5,-15" fill="#f5f0e8" stroke="#c9a84c" stroke-width="1" />
+    <!-- Right page -->
+    <path d="M 5,-15 L 5,10 Q 25,5 35,12 L 35,-8 Q 25,-12 5,-15" fill="#f5f0e8" stroke="#c9a84c" stroke-width="1" />
+    <!-- Spine -->
+    <line x1="0" y1="-15" x2="0" y2="10" stroke="#c9a84c" stroke-width="1.5" />
+    <!-- Page lines left -->
+    <line x1="-30" y1="-5" x2="-8" y2="-5" stroke="#c9a84c" stroke-width="0.5" opacity="0.5" />
+    <line x1="-28" y1="0" x2="-8" y2="0" stroke="#c9a84c" stroke-width="0.5" opacity="0.5" />
+    <line x1="-26" y1="5" x2="-8" y2="5" stroke="#c9a84c" stroke-width="0.5" opacity="0.5" />
+    <!-- Page lines right -->
+    <line x1="8" y1="-5" x2="30" y2="-5" stroke="#c9a84c" stroke-width="0.5" opacity="0.5" />
+    <line x1="8" y1="0" x2="28" y2="0" stroke="#c9a84c" stroke-width="0.5" opacity="0.5" />
+    <line x1="8" y1="5" x2="26" y2="5" stroke="#c9a84c" stroke-width="0.5" opacity="0.5" />
+  </g>
+
+  <!-- DOBRO text in center -->
+  <text x="200" y="300" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="22" fill="#c9a84c" letter-spacing="6">DOBRO</text>
+  
+  <!-- Small decorative lines around DOBRO -->
+  <line x1="120" y1="300" x2="145" y2="300" stroke="#c9a84c" stroke-width="1.5" />
+  <line x1="255" y1="300" x2="280" y2="300" stroke="#c9a84c" stroke-width="1.5" />
+
+  <!-- Bottom tagline: RAISING SOLUTION DRIVEN DISCIPLES -->
+  <text x="200" y="400" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="600" font-size="14" fill="#1a1058" letter-spacing="2">RAISING SOLUTION DRIVEN DISCIPLES</text>
+
+  <!-- Decorative line above tagline -->
+  <line x1="80" y1="370" x2="320" y2="370" stroke="#1a1058" stroke-width="1" />
 </svg>

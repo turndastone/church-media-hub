@@ -965,7 +965,7 @@ export default function Landing() {
       <section className="border-t border-white/10 py-20">
         <motion.div {...fadeUp(0)} className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <div className="glow-blue rounded-2xl border border-primary/30 bg-card/60 p-10 text-center">
-            <Church className="mx-auto h-7 w-7 text-accent" />
+            <LogoMark className="mx-auto h-10 w-10" />
             <h2 className="mx-auto mt-4 max-w-2xl font-display text-3xl font-bold tracking-tight sm:text-4xl">
               “And I will answer thee, and shew thee great and mighty things.”
             </h2>
