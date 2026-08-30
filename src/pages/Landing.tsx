@@ -83,7 +83,7 @@ const PILLARS = [
 const DEFAULT_NAME = "RCCG Solution Ambassadors Dobro";
 const DEFAULT_TAGLINE = "A Parish of the Redeemed Christian Church of God";
 const DEFAULT_VERSE =
-  "Call unto me, and I will answer thee, and shew thee great and mighty things, which thou knowest not. — Jeremiah 33:3";
+  "Jesus Christ the same yesterday, and to day, and for ever. — Hebrews 13:8";
 
 const FALLBACK_SERVICES = [
   {

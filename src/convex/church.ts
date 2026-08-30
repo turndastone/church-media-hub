@@ -17,7 +17,7 @@ export const DEFAULT_INFO = {
   welcomeMessage:
     "Welcome to RCCG Solution Ambassador! We are glad you found us. 🙏 Explore our service times and programs below, or simply ask me anything about the church — our location, weekly programs, contact details, and more. God bless you!",
   verse:
-    "Call unto me, and I will answer thee, and shew thee great and mighty things, which thou knowest not. — Jeremiah 33:3",
+    "Jesus Christ the same yesterday, and to day, and for ever. — Hebrews 13:8",
   address: "Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana",
   website: "",
   phones: ["+233 23 822 2901", "+233 24 601 0017"],
@@ -239,6 +239,17 @@ export const ensureSeed = mutation({
         // One-time removal: the public website link was taken down.
         await ctx.db.patch(existingInfo._id, {
           website: "",
+          updatedAt: Date.now(),
+        });
+      }
+      // One-time migration: update the Bible verse to Hebrews 13:8.
+      const OLD_VERSE = "Call unto me, and I will answer thee";
+      if (
+        !existingInfo.verse ||
+        existingInfo.verse.includes(OLD_VERSE)
+      ) {
+        await ctx.db.patch(existingInfo._id, {
+          verse: DEFAULT_INFO.verse,
           updatedAt: Date.now(),
         });
       }
