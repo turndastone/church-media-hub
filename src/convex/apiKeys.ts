@@ -43,6 +43,7 @@ export const API_KEY_DEFS = [
   { key: "PAYSTACK_PLAN_CODE", label: "Paystack plan code (optional)" },
   { key: "VITE_SUPABASE_URL", label: "Supabase project URL" },
   { key: "VITE_SUPABASE_ANON_KEY", label: "Supabase anon key" },
+  { key: "ADMIN_PIN", label: "Admin page PIN" },
 ] as const;
 
 const ALLOWED = new Set<string>(API_KEY_DEFS.map((d) => d.key));
@@ -199,3 +200,27 @@ export async function resolveSecret(
   }
   return process.env[key] ?? null;
 }
+
+/** Whether an admin PIN is configured. */
+export const hasAdminPin = query({
+  args: {},
+  handler: async (ctx): Promise<boolean> => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return false;
+    const row = await ctx.db
+      .query("apiKeys")
+      .withIndex("by_key", (q) => q.eq("key", "ADMIN_PIN"))
+      .first();
+    return Boolean(row?.encryptedValue);
+  },
+});
+
+/** Verify an admin PIN attempt. Returns true if the PIN matches. */
+export const verifyAdminPin = action({
+  args: { pin: v.string() },
+  handler: async (ctx, { pin }): Promise<boolean> => {
+    const stored = await resolveSecret(ctx, "ADMIN_PIN");
+    if (!stored) return true;
+    return pin === stored;
+  },
+});

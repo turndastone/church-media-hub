@@ -1,9 +1,10 @@
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { Navigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -11,19 +12,85 @@ import type { Id } from "@/convex/_generated/dataModel";
 import {
   Check,
   Loader2,
+  Lock,
+  ShieldCheck,
   Trash2,
   Users,
 } from "lucide-react";
 
 const TABS = ["Overview", "Users", "Content review"] as const;
 const ROLES = ["admin", "user", "member"] as const;
+const PIN_SESSION_KEY = "admin_pin_ok";
 
 export default function Admin() {
   const isAdmin = useQuery(api.admin.isAdmin);
+  const hasPin = useQuery(api.apiKeys.hasAdminPin);
+  const verifyPin = useAction(api.apiKeys.verifyAdminPin);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
+  const [pinUnlocked, setPinUnlocked] = useState(() => {
+    try {
+      return sessionStorage.getItem(PIN_SESSION_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [pinValue, setPinValue] = useState("");
+  const [pinBusy, setPinBusy] = useState(false);
 
   if (isAdmin === false) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  if (hasPin && !pinUnlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 rounded-xl border border-dashed border-border bg-card/40 p-16 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+          <Lock className="h-6 w-6" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Admin PIN required</p>
+          <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
+            This section is protected. Enter the admin PIN to continue.
+          </p>
+        </div>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!pinValue.trim()) return;
+            setPinBusy(true);
+            try {
+              const ok = await verifyPin({ pin: pinValue.trim() });
+              if (ok) {
+                try { sessionStorage.setItem(PIN_SESSION_KEY, "1"); } catch {}
+                setPinUnlocked(true);
+                toast.success("PIN verified");
+              } else {
+                toast.error("Incorrect PIN");
+                setPinValue("");
+              }
+            } catch {
+              toast.error("Verification failed");
+            } finally {
+              setPinBusy(false);
+            }
+          }}
+          className="flex w-full max-w-xs flex-col gap-3"
+        >
+          <Input
+            type="password"
+            placeholder="Enter admin PIN"
+            value={pinValue}
+            onChange={(e) => setPinValue(e.target.value)}
+            className="text-center"
+            autoFocus
+          />
+          <Button type="submit" disabled={pinBusy} className="cursor-pointer gap-2">
+            {pinBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            Verify
+          </Button>
+        </form>
+      </div>
+    );
   }
 
   return (

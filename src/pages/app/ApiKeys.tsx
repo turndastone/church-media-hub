@@ -22,6 +22,7 @@ import {
   Loader2,
   Lock,
   Save,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Wallet,
@@ -118,6 +119,21 @@ const SECTIONS: SectionDef[] = [
       },
     ],
     test: "supabase",
+  },
+  {
+    id: "admin",
+    title: "Admin Security",
+    desc: "PIN lock for the admin dashboard.",
+    icon: ShieldCheck,
+    fields: [
+      {
+        key: "ADMIN_PIN",
+        label: "Admin PIN",
+        secret: true,
+        placeholder: "e.g. 1234",
+        hint: "When set, the admin page requires this PIN to open.",
+      },
+    ],
   },
 ];
 
