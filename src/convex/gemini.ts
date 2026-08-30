@@ -10,7 +10,7 @@ import { resolveSecret } from "./apiKeys";
  * API Keys page (stored encrypted) or in the platform Keys tab. All prompts
  * request JSON output.
  */
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-2.5-flash";
 
 async function geminiJson(
   prompt: string,
