@@ -46,7 +46,7 @@ const OLD_PLACEHOLDER_EMAIL = "info@rccgambghana.org"; // interim provincial-HQ 
 // Official RCCG Solution Ambassadors service schedule.
 const SEED_PROGRAMS = [
   {
-    title: "Sunday Service",
+    title: "Thanksgiving Service",
     description:
       "A glorious time of praise, worship, and the undiluted Word of God for the whole family.",
     category: PROGRAM_CATEGORY.WEEKLY,

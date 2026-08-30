@@ -87,7 +87,7 @@ const DEFAULT_VERSE =
 
 const FALLBACK_SERVICES = [
   {
-    title: "Sunday Service",
+    title: "Thanksgiving Service",
     description:
       "A glorious time of praise, worship, and the undiluted Word of God for the whole family.",
     day: "Every Sunday",
@@ -115,7 +115,7 @@ const FALLBACK_SERVICES = [
     description:
       "A special Sunday when the youths lead and minister during the main service.",
     day: "Every Third Sunday",
-    time: "During Sunday Service",
+    time:      "During Thanksgiving Service",
     venue: "Dobro",
   },
 ];
@@ -179,7 +179,7 @@ export default function Landing() {
       }))
     : FALLBACK_SERVICES;
   const sundayService =
-    weeklyPrograms.find((p) => p.title.toLowerCase().includes("sunday service")) ??
+    weeklyPrograms.find((p) => p.title.toLowerCase().includes("thanksgiving service") || p.title.toLowerCase().includes("sunday service")) ??
     null;
 
   // Next gathering: whatever is coming up today, otherwise the Sunday service.
@@ -482,7 +482,7 @@ export default function Landing() {
                 would love to meet you.
               </p>
               <div className="mt-7 flex flex-wrap gap-2">
-                {["Sunday Service", "Digging Deep", "Faith Clinic", "Youth Sunday"].map(
+                {["Thanksgiving Service", "Digging Deep", "Faith Clinic", "Youth Sunday"].map(
                   (tag) => (
                     <span
                       key={tag}
@@ -770,7 +770,7 @@ export default function Landing() {
                       <CalendarDays className="h-4 w-4" />
                     </span>
                     <div>
-                      <p className="text-sm font-semibold">Sunday Worship Service</p>
+                      <p className="text-sm font-semibold">Thanksgiving Service</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         Every Sunday · 8:00 AM – 11:00 AM · Dobro
                       </p>
