@@ -46,7 +46,7 @@ const OLD_PLACEHOLDER_EMAIL = "info@rccgambghana.org"; // interim provincial-HQ 
 // Official RCCG Solution Ambassadors service schedule.
 const SEED_PROGRAMS = [
   {
-    title: "Thanksgiving Service",
+    title: "Main Service",
     description:
       "A glorious time of praise, worship, and the undiluted Word of God for the whole family.",
     category: PROGRAM_CATEGORY.WEEKLY,
@@ -282,6 +282,17 @@ export const ensureSeed = mutation({
           "A glorious time of praise, worship, and the undiluted Word of God for the whole family.",
         time: "8:00 AM – 11:00 AM",
         venue: "Dobro",
+      });
+    }
+
+    // One-time migration: rename the weekly "Thanksgiving Service" to "Main Service".
+    const programsNow = await ctx.db.query("programs").collect();
+    const weeklyThanksgiving = programsNow.find(
+      (p) => p.title === "Thanksgiving Service" && p.category === "weekly",
+    );
+    if (weeklyThanksgiving) {
+      await ctx.db.patch(weeklyThanksgiving._id, {
+        title: "Main Service",
       });
     }
 

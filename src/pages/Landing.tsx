@@ -178,7 +178,7 @@ export default function Landing() {
       }))
     : FALLBACK_SERVICES;
   const sundayService =
-    weeklyPrograms.find((p) => p.title.toLowerCase().includes("thanksgiving service") || p.title.toLowerCase().includes("sunday service")) ??
+    weeklyPrograms.find((p) => p.title.toLowerCase().includes("main service") || p.title.toLowerCase().includes("sunday service")) ??
     null;
 
   // Next gathering: whatever is coming up today, otherwise the Sunday service.
