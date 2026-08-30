@@ -2,275 +2,282 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { Infer, v } from "convex/values";
 
-// --- User roles ---------------------------------------------------------------
-
+// default user roles. can add / remove based on the project as needed
 export const ROLES = {
   ADMIN: "admin",
   USER: "user",
+  MEMBER: "member",
 } as const;
 
 export const roleValidator = v.union(
   v.literal(ROLES.ADMIN),
   v.literal(ROLES.USER),
+  v.literal(ROLES.MEMBER),
 );
 export type Role = Infer<typeof roleValidator>;
 
-// --- Gender -------------------------------------------------------------------
+// --- Billing ----------------------------------------------------------------
 
-export const GENDER = {
-  MALE: "male",
-  FEMALE: "female",
-  NON_BINARY: "non_binary",
-  OTHER: "other",
-} as const;
-export const genderValidator = v.union(
-  v.literal(GENDER.MALE),
-  v.literal(GENDER.FEMALE),
-  v.literal(GENDER.NON_BINARY),
-  v.literal(GENDER.OTHER),
-);
-export type Gender = Infer<typeof genderValidator>;
-
-// --- Report status ------------------------------------------------------------
-
-export const REPORT_STATUS = {
-  PENDING: "pending",
-  REVIEWED: "reviewed",
-  RESOLVED: "resolved",
-  DISMISSED: "dismissed",
-} as const;
-export const reportStatusValidator = v.union(
-  ...Object.values(REPORT_STATUS).map((s) => v.literal(s)),
-);
-
-// --- Livestream status --------------------------------------------------------
-
-export const STREAM_STATUS = {
-  LIVE: "live",
-  ENDED: "ended",
-  SCHEDULED: "scheduled",
-} as const;
-export const streamStatusValidator = v.union(
-  ...Object.values(STREAM_STATUS).map((s) => v.literal(s)),
-);
-
-// --- Gift types ---------------------------------------------------------------
-
-export const GIFT_TYPE = {
-  ROSE: "rose",
-  HEART: "heart",
-  DIAMOND: "diamond",
-  CROWN: "crown",
-  FIRE: "fire",
-  STAR: "star",
-} as const;
-export const giftTypeValidator = v.union(
-  ...Object.values(GIFT_TYPE).map((g) => v.literal(g)),
-);
-export type GiftType = Infer<typeof giftTypeValidator>;
-
-// --- Coin packages ------------------------------------------------------------
-
-export const COIN_PACKAGE = {
-  STARTER: "starter",
-  POPULAR: "popular",
-  PREMIUM: "premium",
-  MEGA: "mega",
-} as const;
-export const coinPackageValidator = v.union(
-  ...Object.values(COIN_PACKAGE).map((p) => v.literal(p)),
-);
-
-// --- Subscription plans -------------------------------------------------------
-
-export const SUB_PLAN = {
+export const PLAN = {
   FREE: "free",
-  SILVER: "silver",
-  GOLD: "gold",
-  DIAMOND: "diamond",
+  PRO: "pro",
 } as const;
-export const subPlanValidator = v.union(
-  ...Object.values(SUB_PLAN).map((p) => v.literal(p)),
-);
-export type SubPlan = Infer<typeof subPlanValidator>;
+export const planValidator = v.union(v.literal(PLAN.FREE), v.literal(PLAN.PRO));
 
 export const SUB_STATUS = {
   NONE: "none",
+  PENDING: "pending",
+  TRIALING: "trialing",
   ACTIVE: "active",
-  PAST_DUE: "past_dued",
+  PAST_DUE: "past_due",
   CANCELED: "canceled",
 } as const;
 export const subStatusValidator = v.union(
   ...Object.values(SUB_STATUS).map((s) => v.literal(s)),
 );
 
-// ==============================================================================
-// Schema
-// ==============================================================================
+export const BILLING_PROVIDER = {
+  STRIPE: "stripe",
+  PAYSTACK: "paystack",
+} as const;
+export const billingProviderValidator = v.union(
+  v.literal(BILLING_PROVIDER.STRIPE),
+  v.literal(BILLING_PROVIDER.PAYSTACK),
+);
+
+// --- Content catalog --------------------------------------------------------
+
+export const ITEM_TYPE = {
+  SONG: "song",
+  SCRIPTURE: "scripture",
+  BACKGROUND: "background",
+  TEMPLATE: "template",
+} as const;
+export const itemTypeValidator = v.union(
+  v.literal(ITEM_TYPE.SONG),
+  v.literal(ITEM_TYPE.SCRIPTURE),
+  v.literal(ITEM_TYPE.BACKGROUND),
+  v.literal(ITEM_TYPE.TEMPLATE),
+);
+export type ItemType = Infer<typeof itemTypeValidator>;
+
+export const SERVICE_ITEM_TYPE = {
+  ...ITEM_TYPE,
+  NOTE: "note",
+} as const;
+export const serviceItemTypeValidator = v.union(
+  v.literal(SERVICE_ITEM_TYPE.SONG),
+  v.literal(SERVICE_ITEM_TYPE.SCRIPTURE),
+  v.literal(SERVICE_ITEM_TYPE.BACKGROUND),
+  v.literal(SERVICE_ITEM_TYPE.TEMPLATE),
+  v.literal(SERVICE_ITEM_TYPE.NOTE),
+);
+
+export const SERVICE_STATUS = {
+  DRAFT: "draft",
+  SCHEDULED: "scheduled",
+  LIVE: "live",
+  COMPLETED: "completed",
+} as const;
+export const serviceStatusValidator = v.union(
+  v.literal(SERVICE_STATUS.DRAFT),
+  v.literal(SERVICE_STATUS.SCHEDULED),
+  v.literal(SERVICE_STATUS.LIVE),
+  v.literal(SERVICE_STATUS.COMPLETED),
+);
+
+// --- Desktop integrations ---------------------------------------------------
+
+export const APP = {
+  OBS: "obs",
+  EASYWORSHIP: "easyworship",
+  PEWBEAM: "pewbeam",
+} as const;
+export const appValidator = v.union(
+  v.literal(APP.OBS),
+  v.literal(APP.EASYWORSHIP),
+  v.literal(APP.PEWBEAM),
+);
+export type AppKey = Infer<typeof appValidator>;
+
+// --- Live streaming platforms ----------------------------------------------
+
+export const STREAM_PLATFORM = {
+  YOUTUBE: "youtube",
+  FACEBOOK: "facebook",
+  TWITCH: "twitch",
+  VIMEO: "vimeo",
+  CUSTOM: "custom",
+} as const;
+export const streamPlatformValidator = v.union(
+  v.literal(STREAM_PLATFORM.YOUTUBE),
+  v.literal(STREAM_PLATFORM.FACEBOOK),
+  v.literal(STREAM_PLATFORM.TWITCH),
+  v.literal(STREAM_PLATFORM.VIMEO),
+  v.literal(STREAM_PLATFORM.CUSTOM),
+);
+export type StreamPlatform = Infer<typeof streamPlatformValidator>;
+
+// --- Church website --------------------------------------------------------
+
+export const PROGRAM_CATEGORY = {
+  DAILY: "daily",
+  WEEKLY: "weekly",
+  MONTHLY: "monthly",
+  PROVINCIAL: "provincial",
+} as const;
+export const programCategoryValidator = v.union(
+  v.literal(PROGRAM_CATEGORY.DAILY),
+  v.literal(PROGRAM_CATEGORY.WEEKLY),
+  v.literal(PROGRAM_CATEGORY.MONTHLY),
+  v.literal(PROGRAM_CATEGORY.PROVINCIAL),
+);
+export type ProgramCategory = Infer<typeof programCategoryValidator>;
+
+export const churchSocialValidator = v.object({
+  platform: v.string(),
+  url: v.string(),
+});
 
 const schema = defineSchema(
   {
-    // Default auth tables from Convex Auth — DO NOT remove
-    ...authTables,
+    // default auth tables using convex auth.
+    ...authTables, // do not remove or modify
 
-    // --- User profiles (extends auth users) -----------------------------------
-    profiles: defineTable({
-      userId: v.id("users"),
-      bio: v.optional(v.string()),
-      age: v.optional(v.number()),
-      gender: v.optional(genderValidator),
-      country: v.optional(v.string()),
-      city: v.optional(v.string()),
-      interests: v.array(v.string()),
-      photos: v.array(v.string()), // array of image URLs
-      lookingFor: v.optional(v.string()),
-      isOnline: v.boolean(),
-      lastSeen: v.number(),
-      isVerified: v.boolean(),
-      isBanned: v.boolean(),
-      coins: v.number(),
-      followersCount: v.number(),
-      followingCount: v.number(),
-    })
-      .index("by_user", ["userId"])
-      .index("by_country", ["country"])
-      .index("by_gender", ["gender"]),
-
-    // --- Likes (swipe right) -------------------------------------------------
-    likes: defineTable({
-      fromUserId: v.id("users"),
-      toUserId: v.id("users"),
-    })
-      .index("by_from", ["fromUserId"])
-      .index("by_to", ["toUserId"])
-      .index("by_from_and_to", ["fromUserId", "toUserId"]),
-
-    // --- Passes (swipe left) -------------------------------------------------
-    passes: defineTable({
-      fromUserId: v.id("users"),
-      toUserId: v.id("users"),
-    })
-      .index("by_from", ["fromUserId"])
-      .index("by_from_and_to", ["fromUserId", "toUserId"]),
-
-    // --- Matches (mutual likes) ----------------------------------------------
-    matches: defineTable({
-      user1: v.id("users"),
-      user2: v.id("users"),
-      isUnreadByUser1: v.boolean(),
-      isUnreadByUser2: v.boolean(),
-    })
-      .index("by_user1", ["user1"])
-      .index("by_user2", ["user2"]),
-
-    // --- Messages (private chat) ---------------------------------------------
-    messages: defineTable({
-      matchId: v.id("matches"),
-      senderId: v.id("users"),
-      text: v.string(),
-      imageUrl: v.optional(v.string()),
-      isRead: v.boolean(),
-    })
-      .index("by_match", ["matchId"])
-      .index("by_sender", ["senderId"]),
-
-    // --- Follows -------------------------------------------------------------
-    follows: defineTable({
-      followerId: v.id("users"),
-      followingId: v.id("users"),
-    })
-      .index("by_follower", ["followerId"])
-      .index("by_following", ["followingId"])
-      .index("by_follower_and_following", ["followerId", "followingId"]),
-
-    // --- Live streams --------------------------------------------------------
-    livestreams: defineTable({
-      hostId: v.id("users"),
+    // Public programs shown on the site: daily, weekly, monthly, provincial.
+    programs: defineTable({
       title: v.string(),
-      description: v.optional(v.string()),
-      thumbnailUrl: v.optional(v.string()),
-      country: v.string(),
-      city: v.optional(v.string()),
-      status: streamStatusValidator,
-      viewerCount: v.number(),
-      peakViewers: v.number(),
-      totalCoinsReceived: v.number(),
-      startedAt: v.optional(v.number()),
-      endedAt: v.optional(v.number()),
-      tags: v.array(v.string()),
-    })
-      .index("by_status", ["status"])
-      .index("by_host", ["hostId"])
-      .index("by_country", ["country"])
-      .index("by_country_and_status", ["country", "status"]),
-
-    // --- Livestream comments -------------------------------------------------
-    streamComments: defineTable({
-      livestreamId: v.id("livestreams"),
-      userId: v.id("users"),
-      text: v.string(),
-    })
-      .index("by_livestream", ["livestreamId"]),
-
-    // --- Gifts sent during livestreams ----------------------------------------
-    streamGifts: defineTable({
-      livestreamId: v.id("livestreams"),
-      senderId: v.id("users"),
-      giftType: giftTypeValidator,
-      coinsSpent: v.number(),
-    })
-      .index("by_livestream", ["livestreamId"]),
-
-    // --- Coin transactions ---------------------------------------------------
-    coinTransactions: defineTable({
-      userId: v.id("users"),
-      amount: v.number(),
-      type: v.union(v.literal("purchase"), v.literal("gift_sent"), v.literal("gift_received"), v.literal("subscription_reward")),
       description: v.string(),
-    })
-      .index("by_user", ["userId"]),
+      category: programCategoryValidator,
+      day: v.string(),
+      time: v.string(),
+      venue: v.optional(v.string()),
+      order: v.number(),
+      isActive: v.boolean(),
+    }).index("by_category", ["category"]),
 
-    // --- Subscriptions -------------------------------------------------------
+    // Single church profile record powering the site (name, contact, socials…).
+    churchInfo: defineTable({
+      name: v.string(),
+      tagline: v.string(),
+      description: v.string(),
+      welcomeMessage: v.string(),
+      verse: v.string(),
+      address: v.string(),
+      website: v.optional(v.string()),
+      phones: v.array(v.string()),
+      emails: v.array(v.string()),
+      socials: v.array(churchSocialValidator),
+      updatedAt: v.number(),
+    }),
+
+    // the users table is the default users table that is brought in by the authTables
+    users: defineTable({
+      name: v.optional(v.string()), // name of the user. do not remove
+      image: v.optional(v.string()), // image of the user. do not remove
+      email: v.optional(v.string()), // email of the user. do not remove
+      emailVerificationTime: v.optional(v.number()), // email verification time. do not remove
+      isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
+
+      role: v.optional(roleValidator), // role of the user. do not remove
+    }).index("email", ["email"]), // index for the email. do not remove or modify
+
+    // One subscription record per user (trial + provider billing).
     subscriptions: defineTable({
       userId: v.id("users"),
-      plan: subPlanValidator,
+      plan: planValidator,
       status: subStatusValidator,
+      provider: v.optional(billingProviderValidator),
+      trialEndsAt: v.optional(v.number()),
       currentPeriodEnd: v.optional(v.number()),
       providerCustomerId: v.optional(v.string()),
       providerSubscriptionId: v.optional(v.string()),
     })
-      .index("by_user", ["userId"]),
+      .index("by_user", ["userId"])
+      .index("by_provider_customer", ["providerCustomerId"])
+      .index("by_provider_subscription", ["providerSubscriptionId"]),
 
-    // --- Reports -------------------------------------------------------------
-    reports: defineTable({
-      reporterId: v.id("users"),
-      reportedUserId: v.id("users"),
-      reason: v.string(),
-      description: v.optional(v.string()),
-      status: reportStatusValidator,
-    })
-      .index("by_reporter", ["reporterId"])
-      .index("by_reported", ["reportedUserId"])
-      .index("by_status", ["status"]),
-
-    // --- Block list ----------------------------------------------------------
-    blocks: defineTable({
-      blockerId: v.id("users"),
-      blockedId: v.id("users"),
-    })
-      .index("by_blocker", ["blockerId"])
-      .index("by_blocked", ["blockedId"])
-      .index("by_blocker_and_blocked", ["blockerId", "blockedId"]),
-
-    // --- Leaderboard points --------------------------------------------------
-    leaderboardEntries: defineTable({
+    // The shared content catalog: songs, scripture, backgrounds, templates.
+    catalogItems: defineTable({
       userId: v.id("users"),
-      points: v.number(),
-      period: v.string(), // e.g. "2026-08" or "all-time"
-      rank: v.number(),
+      type: itemTypeValidator,
+      title: v.string(),
+      body: v.optional(v.string()),
+      reference: v.optional(v.string()), // scripture reference, e.g. "John 3:16"
+      artist: v.optional(v.string()),
+      tags: v.array(v.string()),
+      coverUrl: v.optional(v.string()),
+      coverStorageId: v.optional(v.id("_storage")),
+      accent: v.optional(v.string()), // gradient key for generated cover art
+      isPublic: v.boolean(),
+      isApproved: v.boolean(),
+      downloads: v.number(),
+      likedBy: v.array(v.id("users")),
     })
-      .index("by_period_and_points", ["period", "points"])
-      .index("by_user_and_period", ["userId", "period"]),
+      .index("by_user", ["userId"])
+      .index("by_type", ["type"]),
+
+    // Service orders / run-of-show.
+    services: defineTable({
+      userId: v.id("users"),
+      title: v.string(),
+      date: v.number(),
+      status: serviceStatusValidator,
+      items: v.array(
+        v.object({
+          label: v.string(),
+          type: serviceItemTypeValidator,
+          content: v.optional(v.string()),
+          reference: v.optional(v.string()),
+          catalogItemId: v.optional(v.id("catalogItems")),
+        }),
+      ),
+      notes: v.optional(v.string()),
+    }).index("by_user", ["userId"]),
+
+    // Multi-platform live streaming destinations (RTMP server + stream key).
+    streamTargets: defineTable({
+      userId: v.id("users"),
+      platform: streamPlatformValidator,
+      label: v.string(),
+      rtmpUrl: v.string(),
+      streamKey: v.string(),
+      enabled: v.boolean(),
+    }).index("by_user", ["userId"]),
+
+    // Saved connection settings for OBS / EasyWorship / Pewbeam.
+    connections: defineTable({
+      userId: v.id("users"),
+      app: appValidator,
+      host: v.string(),
+      port: v.optional(v.number()),
+      password: v.optional(v.string()),
+      url: v.optional(v.string()),
+      token: v.optional(v.string()),
+      enabled: v.boolean(),
+      lastConnectedAt: v.optional(v.number()),
+    }).index("by_user", ["userId"]),
+
+    // Deployment-wide service API keys (Gemini, Bible API, Stripe, Paystack,
+    // Supabase client keys). Values are encrypted at rest — see apiKeys.ts.
+    apiKeys: defineTable({
+      key: v.string(),
+      encryptedValue: v.string(),
+      updatedAt: v.number(),
+    }).index("by_key", ["key"]),
+
+    // Saved sermon transcripts with detected verses.
+    transcripts: defineTable({
+      userId: v.id("users"),
+      title: v.string(),
+      sourceText: v.string(),
+      verses: v.array(
+        v.object({
+          reference: v.string(),
+          text: v.string(),
+        }),
+      ),
+    }).index("by_user", ["userId"]),
   },
   {
     schemaValidation: false,
