@@ -90,13 +90,13 @@ const SEED_PROGRAMS = [
     isActive: true,
   },
   {
-    title: "Communion Service",
+    title: "Thanksgiving Service",
     description:
-      "A reverent service of Holy Communion and thanksgiving.",
+      "A glorious time of praise, worship, and the undiluted Word of God for the whole family.",
     category: PROGRAM_CATEGORY.MONTHLY,
     day: "First Sunday of Every Month",
-    time: "5:00 PM",
-    venue: "Ambassadors, Labadi Trade Fair, LA",
+    time: "8:00 AM – 11:00 AM",
+    venue: "Dobro",
     order: 1,
     isActive: true,
   },
@@ -258,6 +258,22 @@ export const ensureSeed = mutation({
         await ctx.db.insert("programs", p);
       }
     }
+
+    // One-time migration: replace "Communion Service" with "Thanksgiving Service".
+    const currentPrograms = await ctx.db.query("programs").collect();
+    const communion = currentPrograms.find(
+      (p) => p.title === "Communion Service" && p.category === "monthly",
+    );
+    if (communion) {
+      await ctx.db.patch(communion._id, {
+        title: "Thanksgiving Service",
+        description:
+          "A glorious time of praise, worship, and the undiluted Word of God for the whole family.",
+        time: "8:00 AM – 11:00 AM",
+        venue: "Dobro",
+      });
+    }
+
     return true;
   },
 });
