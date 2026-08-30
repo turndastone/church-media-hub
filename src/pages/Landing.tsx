@@ -38,12 +38,11 @@ import {
   Sunrise,
   Twitter,
   Users,
-  Video,
   Youtube,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-type Category = "daily" | "weekly" | "monthly" | "provincial";
+type Category = "daily" | "weekly" | "monthly";
 
 const CATEGORY_META: Record<
   Category,
@@ -52,7 +51,6 @@ const CATEGORY_META: Record<
   daily: { label: "Daily", icon: Sunrise, blurb: "Every-day encounters with God" },
   weekly: { label: "Weekly", icon: CalendarDays, blurb: "The rhythm of parish life" },
   monthly: { label: "Monthly", icon: Moon, blurb: "Special gatherings & thanksgiving" },
-  provincial: { label: "Provincial", icon: Globe, blurb: "Across the province, together" },
 };
 
 const SOCIAL_ICONS: Record<string, { icon: LucideIcon; label: string }> = {
@@ -440,18 +438,21 @@ export default function Landing() {
                   </span>
                   <div>
                     <p className="text-sm font-bold tracking-tight">
-                      Join the media team
+                      Verse of the day
                     </p>
                     <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-                      Lyrics · scripture · live stream
+                      Daily inspiration from Scripture
                     </p>
                   </div>
                 </div>
-                <Button asChild className="w-full cursor-pointer gap-2">
-                  <Link to="/dashboard/control">
-                    <Video className="h-4 w-4" /> Open the console
-                  </Link>
-                </Button>
+                <div className="rounded-xl border border-white/10 bg-secondary/40 p-4">
+                  <p className="font-display text-sm italic leading-6 text-accent/90">
+                    "{verse.replace(/ — .*$/, "")}"
+                  </p>
+                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {verse.split("—")[1]?.trim()}
+                  </p>
+                </div>
               </motion.div>
             </div>
           </div>
@@ -569,7 +570,7 @@ export default function Landing() {
           <motion.div {...fadeUp(0)} className="mx-auto max-w-2xl text-center">
             <p className="tech-label">Programs & events</p>
             <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-              Daily, weekly, monthly & provincial.
+              Daily, weekly & monthly.
             </h2>
             <p className="mt-4 text-[15px] leading-7 text-muted-foreground">
               Explore our programs, special services, community gatherings,
@@ -688,9 +689,9 @@ export default function Landing() {
               </div>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="cursor-pointer gap-2">
-                  <Link to="/dashboard/control">
-                    <Radio className="h-4 w-4" /> Run the stream
-                  </Link>
+                  <a href="#services">
+                    <Radio className="h-4 w-4" /> See our services
+                  </a>
                 </Button>
               </div>
             </motion.div>

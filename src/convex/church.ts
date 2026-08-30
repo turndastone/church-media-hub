@@ -122,17 +122,7 @@ const SEED_PROGRAMS = [
     order: 3,
     isActive: true,
   },
-  {
-    title: "Provincial Vigil",
-    description:
-      "A province-wide night vigil hosted at the provincial headquarters.",
-    category: PROGRAM_CATEGORY.PROVINCIAL,
-    day: "Last Friday of Every Month",
-    time: "10:00 PM – 1:00 AM",
-    venue: "Ambassadors, Labadi Trade Fair, LA",
-    order: 1,
-    isActive: true,
-  },
+
 ];
 
 // Titles from the placeholder schedule that shipped before the real one.
@@ -178,18 +168,16 @@ export const getInfo = query({
 export const listPrograms = query({
   args: {},
   handler: async (ctx) => {
-    const all = await ctx.db.query("programs").collect();
-    const orderOf = {
+    const all = await ctx.db.query("programs").collect();    const orderOf: Record<string, number> = {
       [PROGRAM_CATEGORY.DAILY]: 0,
       [PROGRAM_CATEGORY.WEEKLY]: 1,
       [PROGRAM_CATEGORY.MONTHLY]: 2,
-      [PROGRAM_CATEGORY.PROVINCIAL]: 3,
     };
     return all
-      .filter((p) => p.isActive)
+      .filter((p) => p.isActive && p.category !== "provincial")
       .sort(
         (a, b) =>
-          orderOf[a.category] - orderOf[b.category] ||
+          (orderOf[a.category] ?? 99) - (orderOf[b.category] ?? 99) ||
           a.order - b.order ||
           a._creationTime - b._creationTime,
       );
