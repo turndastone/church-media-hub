@@ -1,6 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import { Navigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
@@ -10,7 +11,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import {
   Check,
   Loader2,
-  ShieldAlert,
   Trash2,
   Users,
 } from "lucide-react";
@@ -23,16 +23,7 @@ export default function Admin() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
 
   if (isAdmin === false) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/40 p-16 text-center">
-        <ShieldAlert className="h-6 w-6 text-accent" />
-        <p className="text-sm font-semibold text-foreground">Admin access required</p>
-        <p className="max-w-sm text-xs leading-5 text-muted-foreground">
-          This area is restricted to workspace administrators. Ask your admin to
-          promote your account.
-        </p>
-      </div>
-    );
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
