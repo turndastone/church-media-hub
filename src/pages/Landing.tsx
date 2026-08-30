@@ -932,7 +932,7 @@ export default function Landing() {
                     to={isAuthenticated ? "/dashboard/church" : "/auth"}
                     className="cursor-pointer text-muted-foreground transition-colors hover:text-primary"
                   >
-                    Church admin
+                    {isAuthenticated ? "Church admin" : "Sign in"}
                   </Link>
                 </li>
               </ul>
