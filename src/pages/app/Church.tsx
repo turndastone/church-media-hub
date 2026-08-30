@@ -220,6 +220,23 @@ function ProfileEditor({
             placeholder="Ankwa Dobro, Radiance fuel station, opposite Fet-Power, Nsawam, Ghana"
           />
         </label>
+        <div className="lg:col-span-2">
+          <span className="tech-label mb-1.5 block">Location on map</span>
+          <div className="overflow-hidden rounded-xl border border-border">
+            <iframe
+              title="Church location"
+              width="100%"
+              height="280"
+              style={{ border: 0 }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://www.google.com/maps?q=${encodeURIComponent(address || "RCCG Solution Ambassadors Dobro, Ghana")}&output=embed`}
+            />
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Map preview — updates when you save the address above.
+          </p>
+        </div>
         <label className="space-y-1.5 lg:col-span-2">
           <span className="tech-label">Website URL · optional</span>
           <Input
