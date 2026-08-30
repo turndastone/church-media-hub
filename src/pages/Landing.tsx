@@ -32,7 +32,6 @@ import {
   Music2,
   Navigation,
   Phone,
-  Quote,
   Radio,
   Sparkles,
   Sunrise,
@@ -195,7 +194,6 @@ export default function Landing() {
 
   const navLinks: [string, string][] = [
     ["Next service", "#next"],
-    ["Sermon", "#sermon"],
     ["About", "#about"],
     ["Services", "#services"],
     ["Programs", "#programs"],
@@ -372,90 +370,6 @@ export default function Landing() {
               </Button>
             </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* ── Latest sermon ───────────────────────────────────────────────── */}
-      <section id="sermon" className="border-t border-white/10 py-20">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <div className="grid items-stretch gap-6 lg:grid-cols-5">
-            <motion.div
-              {...fadeUp(0)}
-              className="glow-blue relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card p-8 lg:col-span-3"
-            >
-              <div className="flex items-center gap-2">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent">
-                  <Quote className="h-4.5 w-4.5" />
-                </span>
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
-                  Latest sermon
-                </p>
-              </div>
-              <div className="mt-8">
-                <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-                  “Hope in Difficult Times”
-                </h2>
-                <p className="mt-4 max-w-xl text-[15px] leading-7 text-muted-foreground">
-                  Join us as we explore the theme of “Hope in Difficult Times,”
-                  where our pastor shares insights and encouragement to navigate
-                  life&apos;s challenges with faith and resilience.
-                </p>
-              </div>
-              <div className="mt-8 flex flex-wrap gap-2">
-                {["Faith", "Resilience", "Encouragement"].map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-
-            <div className="grid gap-6 lg:col-span-2">
-              <motion.div
-                {...fadeUp(0.08)}
-                className="flex flex-col justify-between rounded-2xl border border-white/10 bg-card p-8"
-              >
-                <div>
-                  <p className="tech-label">Verse of the day</p>
-                  <p className="mt-3 font-display text-lg italic leading-8 text-accent/90">
-                    “{verse.replace(/ — .*$/, "")}”
-                  </p>
-                </div>
-                <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                  {verse.split("—")[1]?.trim()}
-                </p>
-              </motion.div>
-              <motion.div
-                {...fadeUp(0.14)}
-                className="flex flex-1 flex-col justify-between gap-4 rounded-2xl border border-accent/30 bg-accent/10 p-8"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent">
-                    <Radio className="h-4.5 w-4.5" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold tracking-tight">
-                      Verse of the day
-                    </p>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-                      Daily inspiration from Scripture
-                    </p>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-secondary/40 p-4">
-                  <p className="font-display text-sm italic leading-6 text-accent/90">
-                    "{verse.replace(/ — .*$/, "")}"
-                  </p>
-                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-                    {verse.split("—")[1]?.trim()}
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-          </div>
         </div>
       </section>
 
