@@ -1,6 +1,7 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
+import { installErrorTracker, recordError } from "@/lib/error-tracker";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
@@ -50,6 +51,7 @@ class ToolbarErrorBoundary extends React.Component<
   }
   componentDidCatch(err: Error) {
     console.warn("[VlyToolbar] Caught error, toolbar disabled:", err.message);
+    recordError(err, "boundary", "VlyToolbar");
   }
   render() {
     return this.state.hasError ? null : this.props.children;
@@ -71,6 +73,7 @@ class RootErrorBoundary extends React.Component<
   }
   componentDidCatch(err: Error) {
     console.error("[WebContainer preview] Root crash:", err);
+    recordError(err, "boundary", "RootErrorBoundary");
   }
   render() {
     if (this.state.hasError) {
@@ -96,6 +99,8 @@ class RootErrorBoundary extends React.Component<
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
+// Capture uncaught errors, rejected promises, and console errors app-wide.
+installErrorTracker();
 
 
 function RouteSyncer() {
