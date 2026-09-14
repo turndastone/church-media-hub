@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogoMark, Wordmark } from "@/components/wordmark";
 import { ChurchChat } from "@/components/ChurchChat";
 import { cn } from "@/lib/utils";
+import { initials } from "@/lib/format";
 import {
   isProgramToday,
   parseStartMinutes,
@@ -32,6 +34,7 @@ import {
   Music2,
   Navigation,
   Phone,
+  Quote,
   Radio,
   Sparkles,
   Sunrise,
@@ -134,6 +137,7 @@ export default function Landing() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const info = useQuery(api.church.getInfo);
   const programs = useQuery(api.church.listPrograms);
+  const testimonials = useQuery(api.testimonies.listApproved);
   const ensureSeed = useMutation(api.church.ensureSeed);
   const [activeTab, setActiveTab] = useState<Category>("weekly");
 
@@ -197,12 +201,13 @@ export default function Landing() {
     ["About", "#about"],
     ["Services", "#services"],
     ["Programs", "#programs"],
+    ["Testimonies", "#testimonies"],
     ["Live", "#live"],
     ["Visit us", "#visit"],
     ["Contact", "#contact"],
   ];
   const headerLinks = navLinks.filter(([label]) =>
-    ["About", "Services", "Programs", "Live", "Contact"].includes(label),
+    ["About", "Services", "Programs", "Testimonies", "Live", "Contact"].includes(label),
   );
 
   return (
@@ -578,6 +583,86 @@ export default function Landing() {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ── Testimonies ────────────────────────────────────────────────── */}
+      <section id="testimonies" className="border-t border-white/10 py-20">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <motion.div {...fadeUp(0)} className="mx-auto max-w-2xl text-center">
+            <p className="tech-label">Testimonies</p>
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              God is still doing{" "}
+              <span className="text-primary">wonders</span>.
+            </h2>
+            <p className="mt-4 text-[15px] leading-7 text-muted-foreground">
+              Members of the parish share what God has done for them. Have a
+              story of your own? Sign in and add your testimony — it is
+              reviewed and published for the whole family.
+            </p>
+          </motion.div>
+
+          {!testimonials ? (
+            <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-52 animate-pulse rounded-xl border border-white/10 bg-card"
+                />
+              ))}
+            </div>
+          ) : testimonials.length === 0 ? (
+            <div className="mx-auto mt-10 max-w-md rounded-xl border border-dashed border-white/15 bg-card/50 p-10 text-center text-sm text-muted-foreground">
+              No testimonies yet — be the first to share what God has done.
+            </div>
+          ) : (
+            <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {testimonials.slice(0, 6).map((t, i) => (
+                <motion.div
+                  key={t._id}
+                  {...fadeUp(0.05 * i)}
+                  className="group relative flex flex-col rounded-xl border border-white/10 bg-card p-6 transition-colors hover:border-primary/40"
+                >
+                  <Quote className="h-5 w-5 rotate-180 text-primary" />
+                  <h3 className="mt-3 text-[15px] font-bold tracking-tight">
+                    {t.title}
+                  </h3>
+                  <p className="mt-1.5 line-clamp-5 flex-1 text-[13px] leading-6 text-muted-foreground">
+                    {t.body}
+                  </p>
+                  <div className="mt-5 flex items-center gap-2.5 border-t border-white/10 pt-4">
+                    <Avatar className="h-8 w-8 border border-white/10">
+                      {t.author?.image && (
+                        <AvatarImage src={t.author.image} alt={t.author.name ?? ""} />
+                      )}
+                      <AvatarFallback className="bg-primary/15 text-[10px] text-primary">
+                        {initials(t.author?.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-foreground">
+                        {t.author?.name ?? "Church member"}
+                      </p>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                        Member testimony
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-10 text-center">
+            <Button asChild size="lg" className="cursor-pointer gap-2">
+              <Link to={isAuthenticated ? "/dashboard/testimonies" : "/auth"}>
+                <Sparkles className="h-4 w-4" />
+                {isAuthenticated
+                  ? "Share your testimony"
+                  : "Sign in to share your testimony"}
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 

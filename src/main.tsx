@@ -20,6 +20,7 @@ const ControlRoom = lazy(() => import("./pages/app/ControlRoom.tsx"));
 const Integrations = lazy(() => import("./pages/app/Integrations.tsx"));
 const ApiKeys = lazy(() => import("./pages/app/ApiKeys.tsx"));
 const Services = lazy(() => import("./pages/app/Services.tsx"));
+const Testimonies = lazy(() => import("./pages/app/Testimonies.tsx"));
 const Church = lazy(() => import("./pages/app/Church.tsx"));
 const Catalog = lazy(() => import("./pages/app/Catalog.tsx"));
 const CatalogItem = lazy(() => import("./pages/app/CatalogItem.tsx"));
@@ -157,6 +158,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="integrations" element={<Integrations />} />
                 <Route path="keys" element={<ApiKeys />} />
                 <Route path="services" element={<Services />} />
+                <Route path="testimonies" element={<Testimonies />} />
                 <Route path="church" element={<Church />} />
                 <Route path="catalog" element={<Catalog />} />
                 <Route path="catalog/:id" element={<CatalogItem />} />

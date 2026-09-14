@@ -33,6 +33,7 @@ import {
   Menu,
   Minimize,
   MonitorPlay,
+  Quote,
   Radio,
   ScanText,
   Search,
@@ -50,6 +51,7 @@ const NAV = [
   { to: "/dashboard/scripture", label: "Sermons Library", sub: "Manage & organize sermons", icon: ScanText, end: false },
   { to: "/dashboard/catalog", label: "Media Library", sub: "Videos · songs · images", icon: Library, end: false },
   { to: "/dashboard/church", label: "Church Website", sub: "Profile & programs", icon: Church, end: false },
+  { to: "/dashboard/testimonies", label: "Testimonies", sub: "Share what God has done", icon: Quote, end: false },
   { to: "/dashboard/services", label: "Services", sub: "Plan the run-of-show", icon: ListOrdered, end: false },
   { to: "/dashboard/integrations", label: "Integrations", sub: "Connect your stack", icon: Cable, end: false },
   { to: "/dashboard/keys", label: "API Keys", sub: "Service keys & secrets", icon: KeyRound, end: false },
@@ -442,13 +444,15 @@ export default function DashboardLayout() {
   const isAdmin = user?.role === "admin";
   const seedDemo = useMutation(api.catalog.seedDemo);
   const ensureTrial = useMutation(api.subscriptions.ensureTrial);
+  const seedTestimonies = useMutation(api.testimonies.seedDemo);
   const location = useLocation();
 
   useEffect(() => {
     if (!isAuthenticated) return;
     seedDemo().catch(() => undefined);
     ensureTrial().catch(() => undefined);
-  }, [isAuthenticated, seedDemo, ensureTrial]);
+    seedTestimonies().catch(() => undefined);
+  }, [isAuthenticated, seedDemo, ensureTrial, seedTestimonies]);
 
   // The dashboard root is the fixed, app-like presentation console.
   if (location.pathname === "/dashboard") {

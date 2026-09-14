@@ -19,8 +19,10 @@ import {
   AlertTriangle,
   Check,
   ChevronDown,
+  EyeOff,
   Loader2,
   Lock,
+  Quote,
   RotateCcw,
   ShieldCheck,
   Trash2,
@@ -28,7 +30,7 @@ import {
   X,
 } from "lucide-react";
 
-const TABS = ["Overview", "Users", "Content review", "Errors"] as const;
+const TABS = ["Overview", "Users", "Content review", "Testimonies", "Errors"] as const;
 const ROLES = ["admin", "user", "member"] as const;
 const SOURCE_TONE: Record<string, string> = {
   runtime: "border-destructive/30 bg-destructive/10 text-destructive",
@@ -55,6 +57,10 @@ export default function Admin() {
   const [pinBusy, setPinBusy] = useState(false);
   const trackedErrors = useTrackedErrors();
   const errorCount = trackedErrors.reduce((sum, e) => sum + e.count, 0);
+  const allTestimonies = useQuery(api.testimonies.listAll);
+  const pendingTestimonies = (allTestimonies ?? []).filter(
+    (t) => !t.isApproved,
+  ).length;
 
   if (isAdmin === false) {
     return <Navigate to="/dashboard" replace />;
@@ -132,6 +138,18 @@ export default function Admin() {
             )}
           >
             {t}
+            {t === "Testimonies" && pendingTestimonies > 0 && (
+              <span
+                className={cn(
+                  "ml-1.5 inline-flex min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] leading-4 tabular-nums",
+                  tab === t
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-primary/15 text-primary",
+                )}
+              >
+                {pendingTestimonies}
+              </span>
+            )}
             {t === "Errors" && errorCount > 0 && (
               <span
                 className={cn(
@@ -150,6 +168,7 @@ export default function Admin() {
       {tab === "Overview" && <OverviewTab />}
       {tab === "Users" && <UsersTab />}
       {tab === "Content review" && <ReviewTab />}
+      {tab === "Testimonies" && <TestimoniesTab />}
       {tab === "Errors" && <ErrorsTab />}
     </div>
   );
@@ -334,6 +353,132 @@ function ReviewTab() {
             </div>
           </div>
         ))
+      )}
+    </div>
+  );
+}
+
+function TestimoniesTab() {
+  const all = useQuery(api.testimonies.listAll);
+  const setApproved = useMutation(api.testimonies.setApproved);
+  const remove = useMutation(api.testimonies.remove);
+  const [busy, setBusy] = useState<Id<"testimonies"> | null>(null);
+
+  const rows = all
+    ? [...all].sort(
+        (a, b) =>
+          Number(a.isApproved) - Number(b.isApproved) ||
+          b._creationTime - a._creationTime,
+      )
+    : [];
+  const pending = rows.filter((t) => !t.isApproved).length;
+
+  return (
+    <div className="flex flex-col gap-2">
+      {!all ? (
+        <div className="flex items-center justify-center rounded-xl border border-border bg-card p-16">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-card/40 p-8 text-center text-sm text-muted-foreground">
+          <Quote className="mx-auto mb-2 h-5 w-5" />
+          No testimonies submitted yet.
+        </div>
+      ) : (
+        rows.map((t) => (
+          <div
+            key={t._id}
+            className="flex flex-wrap items-start gap-3 rounded-xl border border-border bg-card px-4 py-3"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  {t.title}
+                </p>
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em]",
+                    t.isApproved
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-accent/30 bg-accent/10 text-accent",
+                  )}
+                >
+                  {t.isApproved ? "Published" : "Pending review"}
+                </span>
+              </div>
+              <p className="mt-1 line-clamp-2 text-[13px] leading-6 text-muted-foreground">
+                {t.body}
+              </p>
+              <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                {t.author?.name ?? "Former member"}
+                {t.author?.email ? ` · ${t.author.email}` : ""} ·{" "}
+                {timeAgo(t._creationTime)}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant={t.isApproved ? "ghost" : "default"}
+                className="cursor-pointer gap-1.5"
+                disabled={busy === t._id}
+                onClick={async () => {
+                  setBusy(t._id);
+                  try {
+                    await setApproved({
+                      id: t._id,
+                      approved: !t.isApproved,
+                    });
+                    toast.success(
+                      t.isApproved
+                        ? "Testimony unpublished"
+                        : `Published "${t.title}"`,
+                    );
+                  } catch (err) {
+                    toast.error((err as Error).message);
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                {busy === t._id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : t.isApproved ? (
+                  <>
+                    <EyeOff className="h-3.5 w-3.5" /> Unpublish
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-3.5 w-3.5" /> Approve
+                  </>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="cursor-pointer gap-1.5 text-destructive hover:text-destructive"
+                disabled={busy === t._id}
+                onClick={async () => {
+                  setBusy(t._id);
+                  try {
+                    await remove({ id: t._id });
+                    toast("Testimony removed");
+                  } catch (err) {
+                    toast.error((err as Error).message);
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </Button>
+            </div>
+          </div>
+        ))
+      )}
+      {pending > 0 && (
+        <p className="px-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          {pending} testimonie{pending === 1 ? "y" : "s"} awaiting approval
+        </p>
       )}
     </div>
   );

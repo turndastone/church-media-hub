@@ -278,6 +278,17 @@ const schema = defineSchema(
         }),
       ),
     }).index("by_user", ["userId"]),
+
+    // Member testimonies — submitted after sign in, approved by an admin
+    // before they appear on the public site.
+    testimonies: defineTable({
+      userId: v.id("users"),
+      title: v.string(),
+      body: v.string(),
+      isApproved: v.boolean(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_approved", ["isApproved"]),
   },
   {
     schemaValidation: false,
