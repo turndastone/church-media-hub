@@ -27,6 +27,7 @@ import {
   Globe,
   HandCoins,
   HeartHandshake,
+  LogIn,
   Instagram,
   Mail,
   MapPin,
@@ -242,10 +243,26 @@ export default function Landing() {
             <Button
               asChild
               variant="ghost"
+              size="icon-lg"
+              className="size-11 cursor-pointer sm:hidden"
+            >
+              <Link
+                to={isAuthenticated ? "/dashboard" : "/auth"}
+                aria-label={
+                  isAuthenticated ? "Go to my dashboard" : "Member sign in"
+                }
+                title={isAuthenticated ? "My dashboard" : "Member sign in"}
+              >
+                <LogIn className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
               className="hidden cursor-pointer sm:inline-flex"
             >
-              <Link to={isAuthenticated ? "/dashboard/church" : "/auth"}>
-                {authLoading ? "Loading…" : isAuthenticated ? "Church admin" : "Sign in"}
+              <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
+                {authLoading ? "Loading…" : isAuthenticated ? "My dashboard" : "Member sign in"}
               </Link>
             </Button>
             <Button asChild className="cursor-pointer gap-1.5">
@@ -1015,10 +1032,10 @@ export default function Landing() {
                 ))}
                 <li>
                   <Link
-                    to={isAuthenticated ? "/dashboard/church" : "/auth"}
+                    to={isAuthenticated ? "/dashboard" : "/auth"}
                     className="cursor-pointer text-muted-foreground transition-colors hover:text-primary"
                   >
-                    {isAuthenticated ? "Church admin" : "Sign in"}
+                    {isAuthenticated ? "My dashboard" : "Member sign in"}
                   </Link>
                 </li>
               </ul>
