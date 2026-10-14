@@ -29,6 +29,7 @@ const Scripture = lazy(() => import("./pages/app/Scripture.tsx"));
 const Billing = lazy(() => import("./pages/app/Billing.tsx"));
 const Admin = lazy(() => import("./pages/app/Admin.tsx"));
 const Settings = lazy(() => import("./pages/app/Settings.tsx"));
+const Legal = lazy(() => import("./pages/Legal.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -168,6 +169,8 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="admin" element={<Admin />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
+              <Route path="/terms" element={<Legal doc="terms" />} />
+              <Route path="/privacy" element={<Legal doc="privacy" />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import logo from "@/assets/logo.svg";
 import { ArrowRight, Loader2, Mail, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
+import { Link } from "react-router";
 import { useNavigate, useSearchParams } from "react-router";
 
 interface AuthProps {
@@ -185,6 +186,18 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                       Continue as Guest
                     </Button>
                   </div>
+
+                  <p className="mt-6 text-center text-[11px] leading-5 text-muted-foreground">
+                    By continuing you agree to our{" "}
+                    <Link to="/terms" className="cursor-pointer text-primary hover:underline">
+                      Terms of Use
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/privacy" className="cursor-pointer text-primary hover:underline">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </p>
                 </CardContent>
               </form>
             </>

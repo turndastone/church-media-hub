@@ -991,7 +991,7 @@ export default function Landing() {
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/10 bg-card/40 py-12">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <div className="grid gap-10 md:grid-cols-3">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <Wordmark compact />
               <p className="mt-4 max-w-xs text-[13px] leading-6 text-muted-foreground">
@@ -1045,11 +1045,56 @@ export default function Landing() {
                 ))}
               </ul>
             </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Legal
+              </p>
+              <ul className="mt-4 space-y-2 text-[13px]">
+                <li>
+                  <Link
+                    to="/terms"
+                    className="cursor-pointer text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    Terms of Use
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/privacy"
+                    className="cursor-pointer text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href={`mailto:${(emails.length ? emails : ["rccgsolutionambassador@gmail.com"])[0]}`}
+                    className="cursor-pointer text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    Data requests
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
           <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               © {new Date().getFullYear()} {name} · {tagline}
             </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              <Link
+                to="/terms"
+                className="cursor-pointer text-[12px] text-muted-foreground transition-colors hover:text-primary"
+              >
+                Terms of Use
+              </Link>
+              <Link
+                to="/privacy"
+                className="cursor-pointer text-[12px] text-muted-foreground transition-colors hover:text-primary"
+              >
+                Privacy Policy
+              </Link>
+            </div>
             <div className="flex items-center gap-2">
               {socials.slice(0, 6).map((s) => {
                 const meta = SOCIAL_ICONS[s.platform] ?? { icon: Globe, label: s.platform };
