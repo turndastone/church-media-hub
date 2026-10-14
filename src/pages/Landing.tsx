@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogoMark, Wordmark } from "@/components/wordmark";
 import { ChurchChat } from "@/components/ChurchChat";
+import { CookieNotice } from "@/components/CookieNotice";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import {
@@ -1117,6 +1118,8 @@ export default function Landing() {
       </footer>
 
       <ChurchChat />
+
+      <CookieNotice />
     </div>
   );
 }
